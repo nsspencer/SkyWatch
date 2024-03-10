@@ -2,24 +2,26 @@ from astro_access.constraints._base_constraint import BaseAccessConstraint
 from astro_access.frame_interpolator import FrameInterpolator
 import astropy.units as u
 from astropy.time import Time
+from astropy.coordinates import EarthLocation, get_body
 import numpy as np
 
 
 class LineOfSight(BaseAccessConstraint):
-    def __init__(self, body_position: FrameInterpolator, sma = 6378.137 * u.km, smi = 6356.7523 * u.km) -> None:
+    def __init__(self, body: FrameInterpolator, sma = 6378.137 * u.km, smi = 6356.7523 * u.km, use_frame: str = 'itrs') -> None:
         """
         Line of sight constraint which checks that the line of sight between two positions
         is not blocked by some body with a given semi major and semi minor access.
 
         Args:
-            body_position (FrameInterpolator): coordinate of the body which potentially blocks line of sight.
+            body (FrameInterpolator): coordinate of the body which potentially blocks line of sight.
             sma (_type_, optional): semi major axis of the body. Defaults to 6378.137*u.km.
             smi (_type_, optional): semi minor axis of the body. Defaults to 6356.7523*u.km.
         """
         super().__init__()
         self.sma = sma
         self.smi = smi
-        self.body_position = body_position
+        self.body = body
+        self.use_frame = use_frame
         
     def __call__(self, observer: FrameInterpolator, target: FrameInterpolator, time: Time) -> np.ndarray:
         """
@@ -34,9 +36,9 @@ class LineOfSight(BaseAccessConstraint):
             Time: boolean array of times when this platform has line of sight access to the target.
         """
         assert self != target, "Cannot get line of sight to self"
-        pos1 = observer.position.get_position(time) 
-        pos2 = target.position.get_position(time)
-        body_pos = self.body_position.get_position(time)
+        pos1 = observer.state_at(time, self.use_frame).cartesian.xyz
+        pos2 = target.state_at(time, self.use_frame).cartesian.xyz
+        body_pos = self.body.state_at(time, self.use_frame).cartesian.xyz
         return self._line_of_sight_body(pos1.T, pos2.T, body_pos.T, self.sma, self.smi)
         
     

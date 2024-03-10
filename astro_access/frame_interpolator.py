@@ -1,26 +1,25 @@
-import pymap3d
-import time
 import astropy.units as u
 from astropy.time import Time
-from astropy.coordinates import SkyCoord, ICRS, GCRS, ITRS, EarthLocation, CartesianRepresentation, CartesianDifferential, BaseCoordinateFrame, AltAz
+from astropy.coordinates import SkyCoord
 from astropy.coordinates import sky_coordinate_parsers
 import numpy as np
 from scipy.interpolate import CubicSpline, CubicHermiteSpline
 
+
+class SavedFrame:
+    """
+    Represents the a coordinate frames interpolation splines for quick position and velocity calculations.
+    """
+    def __init__(self, name: str, position_spline: CubicHermiteSpline, velocity_spline: CubicHermiteSpline) -> None:
+        self.name = name
+        self.position_spline = position_spline
+        self.velocity_spline = velocity_spline
+    
+    def __repr__(self) -> str:
+        return self.name
+    
     
 class FrameInterpolator(SkyCoord):
-    
-    class SavedFrame:
-        """
-        Represents the a coordinate frames interpolation splines for quick position and velocity calculations.
-        """
-        def __init__(self, name: str, position_spline: CubicHermiteSpline, velocity_spline: CubicHermiteSpline) -> None:
-            self.name = name
-            self.position_spline = position_spline
-            self.velocity_spline = velocity_spline
-        
-        def __repr__(self) -> str:
-            return self.name
     
     def _copy_from(self, other: 'FrameInterpolator'):
         self._interpolation_allowed = other._interpolation_allowed
@@ -33,7 +32,7 @@ class FrameInterpolator(SkyCoord):
         super().__init__(*args, **kwargs)
         
         # call copy constructor
-        if isinstance(args[0], FrameInterpolator):
+        if len(args) != 0 and isinstance(args[0], FrameInterpolator):
             self._copy_from(args[0])
             
         # construct new instance
@@ -94,9 +93,9 @@ class FrameInterpolator(SkyCoord):
                 _velocity = [None, None, None]
             
             # return a new copy of this object in the requested frame
-            new_coord = FrameInterpolator(SkyCoord(x=_position[0], y=_position[1], z=_position[2],
+            new_coord = FrameInterpolator(x=_position[0], y=_position[1], z=_position[2],
                             v_x=_velocity[0], v_y=_velocity[1], v_z=_velocity[2],
-                            frame=saved_frame.name, representation_type='cartesian', obstime=time))
+                            frame=saved_frame.name, representation_type='cartesian', obstime=time, copy=False)
             
             if copy:
                 new_coord._copy_from(self)
@@ -127,13 +126,13 @@ class FrameInterpolator(SkyCoord):
             interpolated_velocity = [None, None, None]
         
         # save the frame and its splines
-        new_frame = self.SavedFrame(frame, position_spline, velocity_spline)
+        new_frame = SavedFrame(frame, position_spline, velocity_spline)
         self._saved_frames.append(new_frame)
         
         # construct the new frame from the interpolated coordinates as a copy of this object
-        new_coord = FrameInterpolator(SkyCoord(x=interpolated_position[0], y=interpolated_position[1], z=interpolated_position[2],
+        new_coord = FrameInterpolator(x=interpolated_position[0], y=interpolated_position[1], z=interpolated_position[2],
                         v_x=interpolated_velocity[0], v_y=interpolated_velocity[1], v_z=interpolated_velocity[2],
-                        frame=frame, representation_type='cartesian', obstime=time))
+                        frame=frame, representation_type='cartesian', obstime=time, copy=False)
         
         if copy:
             new_coord._copy_from(self)
