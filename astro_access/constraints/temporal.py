@@ -12,7 +12,7 @@ class Temporal(BaseAccessConstraint):
         self.to_time = to_time
         self.inner = inner
     
-    def __call__(self, observer: FrameInterpolator, target: FrameInterpolator, time: Time) -> np.ndarray:
+    def __call__(self, observer: FrameInterpolator, target: FrameInterpolator, time: Time, bounds_check: bool = True) -> np.ndarray:
         if self.inner:
             return (time >= self.from_time) & (time <= self.to_time)
         return (time <= self.from_time) | (time >= self.to_time)

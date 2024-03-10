@@ -27,6 +27,7 @@ class FrameInterpolator(SkyCoord):
         self._max_original_time = other._max_original_time
         self._saved_frames = other._saved_frames
         self._original_times = other._original_times
+        self._original_frame = other._original_frame
     
     def __init__(self, *args, **kwargs) -> None:
         super().__init__(*args, **kwargs)
@@ -43,13 +44,14 @@ class FrameInterpolator(SkyCoord):
             else:
                 self._interpolation_allowed = False
                 
-            self._min_original_time = np.min(self.obstime)
-            self._max_original_time = np.max(self.obstime)
+            self._min_original_time = None #np.min(self.obstime)
+            self._max_original_time = None #np.max(self.obstime)
             self._saved_frames = []
             self._original_times = self.obstime
+            self._original_frame = self
         
         
-    def state_at(self, time: Time, frame: str, copy:bool = True) -> 'FrameInterpolator':
+    def state_at(self, time: Time, frame: str, copy:bool = True, bounds_check: bool = True) -> 'FrameInterpolator':
         """
         Interpolates an Astropy.BaseCoordinateFrame object at the given time(s) and saves the
         interpolation spline for later use. Therefore, you only pay the computation penalty
@@ -66,16 +68,15 @@ class FrameInterpolator(SkyCoord):
             FrameInterpolator: FrameInterpolator representing an Astropy SkyCoord in the coordinate system you requested. 
         """
         if not self._interpolation_allowed:
-            new_frame = sky_coordinate_parsers._get_frame_class(frame)
-            try:
-                new_frame.obstime = time
-            except AttributeError:
-                pass
-            
-            return FrameInterpolator(self.transform_to(new_frame, merge_attributes=False))
+            raise ValueError("At least 2 data points/times are required to interpolate coordinates.")
         
-        if np.min(time) < self._min_original_time or np.max(time) > self._max_original_time:
-            raise ValueError(f"Cannot interpolate times that are outside the bounds of the original coordinate frame.\nTime bounds are: [{self._min_original_time}, {self._max_original_time}]")
+        if bounds_check:
+            if self._min_original_time is None:
+                self._min_original_time = np.min(self._original_times)
+            if self._max_original_time is None:
+                self._max_original_time = np.max(self._original_times)
+            if np.min(time) < self._min_original_time or np.max(time) > self._max_original_time:
+                raise ValueError(f"Cannot interpolate times that are outside the bounds of the original coordinate frame.\nTime bounds are: [{self._min_original_time}, {self._max_original_time}]")
             
         # using a list for speed, check if the conversion has already been calculated
         saved_frame = None
@@ -103,7 +104,7 @@ class FrameInterpolator(SkyCoord):
             return new_coord
 
         # we have not converted to this frame before, so we need to do the conversion and store it as a SavedFrame
-        converted_frame = self.transform_to(frame)
+        converted_frame = self._original_frame.transform_to(frame)
         
         # get the position and velocity in cartesian XYZ coordinates of the converted frame
         position = converted_frame.cartesian.xyz.to(u.m)

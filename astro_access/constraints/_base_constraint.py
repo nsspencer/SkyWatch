@@ -7,7 +7,7 @@ from astro_access.frame_interpolator import FrameInterpolator
 
 class BaseAccessConstraint(ABC):
     @abstractclassmethod
-    def __call__(self, observer: FrameInterpolator, target: FrameInterpolator, time: Time) -> np.ndarray:
+    def __call__(self, observer: FrameInterpolator, target: FrameInterpolator, time: Time, bounds_check: bool = True) -> np.ndarray:
         """
         Return truth array of times that satisfy the access constraint between the observer and target.
 

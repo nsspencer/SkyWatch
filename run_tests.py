@@ -77,22 +77,17 @@ if __name__ == "__main__":
     earth_positions = []
     num_fib_points = 1000
     for lat, lon in tqdm.tqdm(fibonacci_latitude_longitude(num_fib_points), desc='Making Facilities'):
-        earth_positions.append(FrameInterpolator(EarthLocation(lat=lat * u.deg, lon=lon * u.deg, height=0 * u.m).get_itrs(obstime=times)).state_at(times, 'itrs'))
+        earth_positions.append(FrameInterpolator(EarthLocation(lat=lat * u.deg, lon=lon * u.deg, height=0 * u.m).get_itrs(obstime=Time([times[0], times[-1]]))))
     
     sat_position = FrameInterpolator(from_eci(leo_csv_times, *leo_csv_position, leo_csv_velocities))
-    
-    
-    # TODO: Fix this case:
-    # earth_pos = FrameInterpolator(x=0 * u.m, y=0 * u.m, z=0 * u.m, frame='itrs')
-    
-    earth_pos = FrameInterpolator(get_body('earth', times))
-    moon_pos = FrameInterpolator(get_body('moon', times))
-    
+    interp_sat_position = sat_position.state_at(times[0], 'itrs')
+    interp_sat_position2 = interp_sat_position.state_at(times[0], 'gcrs')
+
     constraints = []
-    # constraints.append(Temporal(times[3000], times[4000], inner=True))
-    # constraints.append(AzElRange())
-    constraints.append(LineOfSight(earth_pos))
-    # constraints.append(LineOfSight(moon_pos, sma=1737.1*u.km, smi = 1737.1*u.km))
+    constraints.append(Temporal(times[3000], times[4000], inner=True))
+    constraints.append(AzElRange())
+    constraints.append(LineOfSight(FrameInterpolator(get_body('earth', times))))
+    constraints.append(LineOfSight(FrameInterpolator(get_body('moon', times)), sma=1737.1*u.km, smi = 1737.1*u.km))
     
     all_access = []
     for point in tqdm.tqdm(earth_positions, desc='Calculating access'):

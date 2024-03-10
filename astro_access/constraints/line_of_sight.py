@@ -23,7 +23,7 @@ class LineOfSight(BaseAccessConstraint):
         self.body = body
         self.use_frame = use_frame
         
-    def __call__(self, observer: FrameInterpolator, target: FrameInterpolator, time: Time) -> np.ndarray:
+    def __call__(self, observer: FrameInterpolator, target: FrameInterpolator, time: Time, bounds_check: bool = True) -> np.ndarray:
         """
         Returns the subset of times when the earth does not obstruct the two platforms.
 
@@ -36,9 +36,9 @@ class LineOfSight(BaseAccessConstraint):
             Time: boolean array of times when this platform has line of sight access to the target.
         """
         assert self != target, "Cannot get line of sight to self"
-        pos1 = observer.state_at(time, self.use_frame).cartesian.xyz
-        pos2 = target.state_at(time, self.use_frame).cartesian.xyz
-        body_pos = self.body.state_at(time, self.use_frame).cartesian.xyz
+        pos1 = observer.state_at(time, self.use_frame, bounds_check=bounds_check).cartesian.xyz
+        pos2 = target.state_at(time, self.use_frame, bounds_check=bounds_check).cartesian.xyz
+        body_pos = self.body.state_at(time, self.use_frame, bounds_check=bounds_check).cartesian.xyz
         return self._line_of_sight_body(pos1.T, pos2.T, body_pos.T, self.sma, self.smi)
         
     

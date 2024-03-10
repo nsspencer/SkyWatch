@@ -33,8 +33,9 @@ class AzElRange(BaseAccessConstraint):
         self.min_range = min_range
         self.max_range = max_range
     
-    def __call__(self, observer: FrameInterpolator, target: FrameInterpolator, time: Time) -> np.ndarray:
-        az, el, rng  = pymap3d.ecef2aer(*observer.state_at(time, 'itrs').cartesian.xyz.to(u.m).value, *pymap3d.ecef2geodetic(*target.state_at(time, 'itrs').cartesian.xyz.to(u.m).value))
+    def __call__(self, observer: FrameInterpolator, target: FrameInterpolator, time: Time, bounds_check: bool = True) -> np.ndarray:
+        az, el, rng  = pymap3d.ecef2aer(*observer.state_at(time, 'itrs', bounds_check=bounds_check).cartesian.xyz.to(u.m).value,\
+            *pymap3d.ecef2geodetic(*target.state_at(time, 'itrs', bounds_check=bounds_check).cartesian.xyz.to(u.m).value))
         az = az * u.deg
         el = el * u.deg
         rng = rng * u.m

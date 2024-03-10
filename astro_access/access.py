@@ -58,12 +58,20 @@ class Access:
                    constraints: List[BaseAccessConstraint] = [],
                    find_precise_times: bool = True,
                    precision: u.s = 1 * u.s) -> P.Interval:
+        
+        # scale the precision to reflect the it in terms of seconds
+        precision = (1 * u.s) / precision
+        
+        # first pass check of access
         constrined_times = [np.array([True] * len(time))]
         for constraint in constraints:
-            constrined_times.append(constraint(observer, target, time))
-            
+            constrined_times.append(constraint(observer, target, time, bounds_check=True))
+        
+        # get all the windows from the first pass
         valid_time = np.all(constrined_times, axis=0)
         valid_ranges, access_times = Access._access_times(valid_time, time)
+        
+        # if no access or if not using precise timing, set the first pass as the final access
         if not find_precise_times or len(constraints) == 0:
            final_access_times = access_times
            
@@ -83,9 +91,10 @@ class Access:
                     num_steps = max(int(((t1 - t0).datetime.total_seconds()) * precision.value), 2)                    
                     new_start_times = np.linspace(t0, t1, num_steps)
                     
+                    # find the exact start time for this window
                     constrained_times = [np.array([True] * len(new_start_times))]
                     for constraint in constraints:
-                        constrained_times.append(constraint(observer, target, new_start_times))
+                        constrained_times.append(constraint(observer, target, new_start_times, bounds_check=False))
                     exact_start_time = new_start_times[np.all(constrained_times, axis=0)][0]
 
                 # calculate the exact end time
@@ -101,13 +110,15 @@ class Access:
                     num_steps = max(int(((t1 - t0).datetime.total_seconds()) * precision.value), 2)
                     new_end_times = np.linspace(t0, t1, num_steps)
                     
+                    # find the exact end time for this window
                     constrained_times = [np.array([True] * len(new_end_times))]
                     for constraint in constraints:
-                        constrained_times.append(constraint(observer, target, new_end_times))
+                        constrained_times.append(constraint(observer, target, new_end_times, bounds_check=False))
                     exact_end_time = new_end_times[np.all(constrained_times, axis=0)][-1]
                 
                 final_access_times.append((exact_start_time, exact_end_time))
        
+       # compute the access windows using portion's intervals
         access = P.Interval()
         for access_time in final_access_times:
             t_start, t_end = access_time[0], access_time[-1]
