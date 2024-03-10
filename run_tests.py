@@ -1,5 +1,5 @@
 from astro_access import FrameInterpolator
-from astro_access import AccessAlgorithm
+from astro_access import Access
 from astro_access.constraints import LineOfSight, AzElRange, Temporal
 from astro_access.tests.tests import run, get_ephem_data
 
@@ -90,15 +90,13 @@ if __name__ == "__main__":
     
     constraints = []
     # constraints.append(Temporal(times[3000], times[4000], inner=True))
-    constraints.append(AzElRange())
+    # constraints.append(AzElRange())
     constraints.append(LineOfSight(earth_pos))
-    constraints.append(LineOfSight(moon_pos, sma=1737.1*u.km, smi = 1737.1*u.km))
-    
-    access_algorithm = AccessAlgorithm(constraints, True, 0.1 * u.s)
+    # constraints.append(LineOfSight(moon_pos, sma=1737.1*u.km, smi = 1737.1*u.km))
     
     all_access = []
     for point in tqdm.tqdm(earth_positions, desc='Calculating access'):
-        access = access_algorithm(sat_position, point, times)
+        access = Access.get_access(sat_position, point, times, constraints, True, 0.1 * u.s)
         all_access.append((point, access))
 
     access_seconds = []

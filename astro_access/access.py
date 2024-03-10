@@ -9,22 +9,7 @@ from astro_access.constraints._base_constraint import BaseAccessConstraint
 
 
 
-class AccessAlgorithm:
-    
-    @u.quantity_input(precision = u.s) # seconds
-    def __init__(self, target_constraints: List[BaseAccessConstraint] = [], find_precise_times: bool = True, precision: u.s = 1 * u.s) -> None:
-        """_summary_
-
-        Args:
-            target_constraints (List[BaseAccessConstraint]): Constraints that must be satisfied from the observer to the target for access
-            to be successful.
-            find_precise_times (bool, optional): Multiple step interpolation to find accurate start and stop times of access. Defaults to True.
-            precision (u.s, optional): How many seconds of precision to determine access to. Only used if *find_precise_times* is True. Defaults to 1*u.s.
-        """
-        self.target_constraints = target_constraints
-        self.find_precise_times = find_precise_times
-        self.precision = (1 * u.s) / precision        
-    
+class Access:    
     
     @staticmethod
     def _get_true_ranges(bool_array: np.ndarray) -> List[tuple]:
@@ -52,7 +37,7 @@ class AccessAlgorithm:
         if not np.any(constrained_times):
             return [], [] # no access
         
-        window_ranges = AccessAlgorithm._get_true_ranges(constrained_times)
+        window_ranges = Access._get_true_ranges(constrained_times)
         valid_ranges = []
         access_times = []
         for range in window_ranges:
@@ -65,14 +50,21 @@ class AccessAlgorithm:
         return valid_ranges, access_times
     
     
-    def __call__(self, observer: FrameInterpolator, target: FrameInterpolator, time: Time) -> P.Interval:
+    @u.quantity_input(precision = u.s) # seconds
+    @staticmethod
+    def get_access(observer: FrameInterpolator,
+                   target: FrameInterpolator,
+                   time: Time,
+                   constraints: List[BaseAccessConstraint] = [],
+                   find_precise_times: bool = True,
+                   precision: u.s = 1 * u.s) -> P.Interval:
         constrined_times = [np.array([True] * len(time))]
-        for constraint in self.target_constraints:
+        for constraint in constraints:
             constrined_times.append(constraint(observer, target, time))
             
         valid_time = np.all(constrined_times, axis=0)
-        valid_ranges, access_times = self._access_times(valid_time, time)
-        if not self.find_precise_times or len(self.target_constraints) == 0:
+        valid_ranges, access_times = Access._access_times(valid_time, time)
+        if not find_precise_times or len(constraints) == 0:
            final_access_times = access_times
            
         else:
@@ -88,11 +80,11 @@ class AccessAlgorithm:
                     # calculate number of steps between times to get desired precision
                     t1 = time[start_index]
                     t0 = time[before_start_index]
-                    num_steps = max(int(((t1 - t0).datetime.total_seconds()) * self.precision.value), 2)                    
+                    num_steps = max(int(((t1 - t0).datetime.total_seconds()) * precision.value), 2)                    
                     new_start_times = np.linspace(t0, t1, num_steps)
                     
                     constrained_times = [np.array([True] * len(new_start_times))]
-                    for constraint in self.target_constraints:
+                    for constraint in constraints:
                         constrained_times.append(constraint(observer, target, new_start_times))
                     exact_start_time = new_start_times[np.all(constrained_times, axis=0)][0]
 
@@ -106,11 +98,11 @@ class AccessAlgorithm:
                     # calculate number of steps between times to get desired precision
                     t0 = time[end_index]
                     t1 = time[after_end_index]
-                    num_steps = max(int(((t1 - t0).datetime.total_seconds()) * self.precision.value), 2)
+                    num_steps = max(int(((t1 - t0).datetime.total_seconds()) * precision.value), 2)
                     new_end_times = np.linspace(t0, t1, num_steps)
                     
                     constrained_times = [np.array([True] * len(new_end_times))]
-                    for constraint in self.target_constraints:
+                    for constraint in constraints:
                         constrained_times.append(constraint(observer, target, new_end_times))
                     exact_end_time = new_end_times[np.all(constrained_times, axis=0)][-1]
                 
