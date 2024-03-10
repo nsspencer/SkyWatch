@@ -82,11 +82,17 @@ if __name__ == "__main__":
     sat_position = FrameInterpolator(from_eci(leo_csv_times, *leo_csv_position, leo_csv_velocities))
     
     
+    # TODO: Fix this case:
+    # earth_pos = FrameInterpolator(x=0 * u.m, y=0 * u.m, z=0 * u.m, frame='itrs')
+    
     earth_pos = FrameInterpolator(get_body('earth', times))
+    moon_pos = FrameInterpolator(get_body('moon', times))
+    
     constraints = []
     # constraints.append(Temporal(times[3000], times[4000], inner=True))
     constraints.append(AzElRange())
     constraints.append(LineOfSight(earth_pos))
+    constraints.append(LineOfSight(moon_pos, sma=1737.1*u.km, smi = 1737.1*u.km))
     
     access_algorithm = AccessAlgorithm(constraints, True, 0.1 * u.s)
     
