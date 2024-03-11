@@ -1,7 +1,6 @@
 import astropy.units as u
 from astropy.time import Time
 from astropy.coordinates import SkyCoord
-from astropy.coordinates import sky_coordinate_parsers
 import numpy as np
 from scipy.interpolate import CubicSpline, CubicHermiteSpline
 
@@ -19,9 +18,9 @@ class SavedFrame:
         return self.name
     
     
-class FrameInterpolator(SkyCoord):
+class CoordinateInterpolator(SkyCoord):
     
-    def _copy_from(self, other: 'FrameInterpolator'):
+    def _copy_from(self, other: 'CoordinateInterpolator'):
         self._interpolation_allowed = other._interpolation_allowed
         self._min_original_time = other._min_original_time
         self._max_original_time = other._max_original_time
@@ -33,7 +32,7 @@ class FrameInterpolator(SkyCoord):
         super().__init__(*args, **kwargs)
         
         # call copy constructor
-        if len(args) != 0 and isinstance(args[0], FrameInterpolator):
+        if len(args) != 0 and isinstance(args[0], CoordinateInterpolator):
             self._copy_from(args[0])
             
         # construct new instance
@@ -44,14 +43,14 @@ class FrameInterpolator(SkyCoord):
             else:
                 self._interpolation_allowed = False
                 
-            self._min_original_time = None #np.min(self.obstime)
-            self._max_original_time = None #np.max(self.obstime)
+            self._min_original_time = None
+            self._max_original_time = None
             self._saved_frames = []
             self._original_times = self.obstime
             self._original_frame = self
         
         
-    def state_at(self, time: Time, frame: str, copy:bool = True, bounds_check: bool = True) -> 'FrameInterpolator':
+    def state_at(self, time: Time, frame: str, copy:bool = True, bounds_check: bool = True) -> 'CoordinateInterpolator':
         """
         Interpolates an Astropy.BaseCoordinateFrame object at the given time(s) and saves the
         interpolation spline for later use. Therefore, you only pay the computation penalty
@@ -65,7 +64,7 @@ class FrameInterpolator(SkyCoord):
             frame (str): BaseCoordinateFrame name to get the results in
 
         Returns:
-            FrameInterpolator: FrameInterpolator representing an Astropy SkyCoord in the coordinate system you requested. 
+            CoordinateInterpolator: CoordinateInterpolator representing an Astropy SkyCoord in the coordinate system you requested. 
         """
         if not self._interpolation_allowed:
             raise ValueError("At least 2 data points/times are required to interpolate coordinates.")
@@ -94,7 +93,7 @@ class FrameInterpolator(SkyCoord):
                 _velocity = [None, None, None]
             
             # return a new copy of this object in the requested frame
-            new_coord = FrameInterpolator(x=_position[0], y=_position[1], z=_position[2],
+            new_coord = CoordinateInterpolator(x=_position[0], y=_position[1], z=_position[2],
                             v_x=_velocity[0], v_y=_velocity[1], v_z=_velocity[2],
                             frame=saved_frame.name, representation_type='cartesian', obstime=time, copy=False)
             
@@ -104,7 +103,14 @@ class FrameInterpolator(SkyCoord):
             return new_coord
 
         # we have not converted to this frame before, so we need to do the conversion and store it as a SavedFrame
-        converted_frame = self._original_frame.transform_to(frame)
+        try:
+            converted_frame = self._original_frame.transform_to(frame)
+        except AttributeError as err:
+            # handle errors when coming from non terrestrial coordinate system
+            if err.name == 'to_geodetic':
+                converted_frame = self.state_at(self._original_times, 'itrs', copy=False).transform_to(frame)
+            else:
+                raise err
         
         # get the position and velocity in cartesian XYZ coordinates of the converted frame
         position = converted_frame.cartesian.xyz.to(u.m)
@@ -131,7 +137,7 @@ class FrameInterpolator(SkyCoord):
         self._saved_frames.append(new_frame)
         
         # construct the new frame from the interpolated coordinates as a copy of this object
-        new_coord = FrameInterpolator(x=interpolated_position[0], y=interpolated_position[1], z=interpolated_position[2],
+        new_coord = CoordinateInterpolator(x=interpolated_position[0], y=interpolated_position[1], z=interpolated_position[2],
                         v_x=interpolated_velocity[0], v_y=interpolated_velocity[1], v_z=interpolated_velocity[2],
                         frame=frame, representation_type='cartesian', obstime=time, copy=False)
         

@@ -1,44 +1,16 @@
-from astro_access import FrameInterpolator
-from astro_access import Access
-from astro_access.constraints import LineOfSight, AzElRange, Temporal
-from astro_access.tests.tests import run, get_ephem_data
+from astro_access.access.constraints import LineOfSight, AzElRange, Temporal
+from astro_access.tests.tests import get_ephem_data
+from astro_access import Kinematic
 
 import astropy.units as u
 from astropy.time import Time
 import numpy as np
 import time
 
-from astropy.coordinates import SkyCoord, EarthLocation, get_body
 import pymap3d
 import math
 import tqdm
 import pandas as pd
-
-
-@u.quantity_input(latitude=u.deg, longitude=u.deg, altitude=u.m)
-def from_geodetic(time: Time,
-                  latitude: u.deg, longitude: u.deg, altitude: u.m) -> SkyCoord:
-    return SkyCoord(EarthLocation(lat=latitude, lon=longitude, height=altitude).get_itrs(obstime=time))
-
-
-@u.quantity_input(x=u.m, y=u.m, z=u.m, v_x=u.m/u.s, v_y=u.m/u.s, v_z=u.m/u.s)
-def from_ecef(time: Time,
-              x: u.m, y: u.m, z: u.m,
-              v_x: u.m/u.s = None, v_y: u.m/u.s = None, v_z: u.m/u.s = None) -> SkyCoord:
-    return SkyCoord(x=x, y=y, z=z,
-                    v_x=v_x, v_y=v_y, v_z=v_z,
-                    frame='itrs', representation_type='cartesian',
-                    obstime=time)
-
-
-@u.quantity_input(x=u.m, y=u.m, z=u.m, v_x=u.m/u.s, v_y=u.m/u.s, v_z=u.m/u.s)
-def from_eci(time: Time,
-             x: u.m, y: u.m, z: u.m,
-             v_x: u.m/u.s = None, v_y: u.m/u.s = None, v_z: u.m/u.s = None) -> SkyCoord:
-    return SkyCoord(x=x, y=y, z=z,
-                    v_x=v_x, v_y=v_y, v_z=v_z,
-                    frame='gcrs', representation_type='cartesian',
-                    obstime=time)
 
 
 def fibonacci_latitude_longitude(samples=1000):
@@ -76,30 +48,40 @@ if __name__ == "__main__":
     
     earth_positions = []
     num_fib_points = 1000
+    point_times = np.linspace(times[0], times[-1], 250)
     for lat, lon in tqdm.tqdm(fibonacci_latitude_longitude(num_fib_points), desc='Making Facilities'):
-        earth_positions.append(FrameInterpolator(EarthLocation(lat=lat * u.deg, lon=lon * u.deg, height=0 * u.m).get_itrs(obstime=Time([times[0], times[-1]]))))
+        earth_positions.append(Kinematic.from_geodetic(time=point_times, latitude=lat * u.deg, longitude=lon * u.deg, altitude=0 * u.m))
     
-    sat_position = FrameInterpolator(from_eci(leo_csv_times, *leo_csv_position, leo_csv_velocities))
-    interp_sat_position = sat_position.state_at(times[0], 'itrs')
-    interp_sat_position2 = interp_sat_position.state_at(times[0], 'gcrs')
+    sat_position = Kinematic.from_eci(leo_csv_times, *leo_csv_position, leo_csv_velocities)
+    sat_position:Kinematic
+    interp_sat_position = sat_position.coordinates_at(times[0], 'itrs')
+    interp_sat_position2 = interp_sat_position.coordinates_at(times[0], 'gcrs')
 
     constraints = []
-    constraints.append(Temporal(times[3000], times[4000], inner=True))
-    constraints.append(AzElRange())
-    constraints.append(LineOfSight(FrameInterpolator(get_body('earth', times))))
-    constraints.append(LineOfSight(FrameInterpolator(get_body('moon', times)), sma=1737.1*u.km, smi = 1737.1*u.km))
+    # constraints.append(Temporal(times[3000], times[4000], inner=True))
+    # constraints.append(AzElRange())
+    constraints.append(LineOfSight(Kinematic.from_body(times, 'earth'), use_frame='itrs'))
+    # constraints.append(LineOfSight(Kinematic.from_body(times, 'moon'), sma=1737.1*u.km, smi = 1737.1*u.km))
     
     all_access = []
     for point in tqdm.tqdm(earth_positions, desc='Calculating access'):
-        access = Access.get_access(sat_position, point, times, constraints, True, 0.1 * u.s)
-        all_access.append((point, access))
+        point: Kinematic
+        sat_access = sat_position.access_to(point, times, constraints, True, 0.1 * u.s)
+        point_access = point.access_to(sat_position, times, constraints, True, 0.1 * u.s)
+        
+        if len(sat_access) != len(point_access):
+            raise ValueError("Not commutative")
+        for index in range(len(sat_access)):
+            sat_interval = (sat_access._intervals[index].upper - sat_access._intervals[index].lower).datetime.total_seconds()
+            point_interval = (point_access._intervals[index].upper - point_access._intervals[index].lower).datetime.total_seconds()
+            if sat_interval != point_interval:
+                raise ValueError("Not commutative")
+            
+        all_access.append((point, point_access))
 
     access_seconds = []
     for point, access in all_access:
-        seconds = 0
-        for interval in access._intervals:
-            seconds += (interval.upper - interval.lower).datetime.total_seconds()
-        access_seconds.append(seconds)
+        access_seconds.append(access.total_duration.value)
             
     print(pd.DataFrame(access_seconds).describe())
         
@@ -149,14 +131,14 @@ if __name__ == "__main__":
     
     
     # # test with the single earth point
-    # cs0 = FrameInterpolator(earth_point)
+    # cs0 = CoordinateInterpolator(earth_point)
     # cs0_itrs = cs0.state_at(times, 'itrs')
     # cs0_gcrs = cs0.state_at(times, 'gcrs')
     # cs0_icrs = cs0.state_at(times, 'icrs')
     
-    # # now create a FrameInterpolator
+    # # now create a CoordinateInterpolator
     
-    # cs1 = FrameInterpolator(ecef_points_vels)
+    # cs1 = CoordinateInterpolator(ecef_points_vels)
     # new_times = np.linspace(scenario_start, scenario_end, num_elements*1)
     
     # print(f"\n\nNum interp times: {len(new_times):,}")
@@ -189,7 +171,7 @@ if __name__ == "__main__":
     
     # print("\n\nGeodetic test no velocity: ")
     
-    # cs2 = FrameInterpolator(multi_earth_points)
+    # cs2 = CoordinateInterpolator(multi_earth_points)
     # print(f"\n\nNum interp times: {len(new_times):,}")
     
     # t0 = time.time()

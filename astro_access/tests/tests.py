@@ -1,5 +1,5 @@
 import unittest
-from astro_access import FrameInterpolator
+from astro_access.coordinates.coordinate_interpolator import CoordinateInterpolator
 import csv
 import os
 
