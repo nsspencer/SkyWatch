@@ -3,22 +3,21 @@ from astropy.time import Time
 from astropy.coordinates import SkyCoord
 import numpy as np
 from scipy.interpolate import CubicSpline, CubicHermiteSpline
-
-
-class SavedFrame:
-    """
-    Represents the a coordinate frames interpolation splines for quick position and velocity calculations.
-    """
-    def __init__(self, name: str, position_spline: CubicHermiteSpline, velocity_spline: CubicHermiteSpline) -> None:
-        self.name = name
-        self.position_spline = position_spline
-        self.velocity_spline = velocity_spline
-    
-    def __repr__(self) -> str:
-        return self.name
     
     
 class CoordinateInterpolator(SkyCoord):
+    
+    class SavedFrame:
+        """
+        Represents the a coordinate frames interpolation splines for quick position and velocity calculations.
+        """
+        def __init__(self, name: str, position_spline: CubicHermiteSpline, velocity_spline: CubicHermiteSpline) -> None:
+            self.name = name
+            self.position_spline = position_spline
+            self.velocity_spline = velocity_spline
+        
+        def __repr__(self) -> str:
+            return self.name
     
     def _copy_from(self, other: 'CoordinateInterpolator'):
         self._interpolation_allowed = other._interpolation_allowed
@@ -133,7 +132,7 @@ class CoordinateInterpolator(SkyCoord):
             interpolated_velocity = [None, None, None]
         
         # save the frame and its splines
-        new_frame = SavedFrame(frame, position_spline, velocity_spline)
+        new_frame = self.SavedFrame(frame, position_spline, velocity_spline)
         self._saved_frames.append(new_frame)
         
         # construct the new frame from the interpolated coordinates as a copy of this object

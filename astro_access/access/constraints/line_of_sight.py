@@ -24,6 +24,7 @@ class LineOfSight(BaseAccessConstraint):
         super().__init__()
         self.sma = sma
         self.smi = smi
+        self.use_frame = use_frame
         if isinstance(body, Kinematic):
             self.body = body.coordinate_frame
         elif isinstance(body, CoordinateInterpolator):
@@ -32,8 +33,6 @@ class LineOfSight(BaseAccessConstraint):
             self.body = CoordinateInterpolator(body)
         else:
             raise TypeError("Body must be a Kinematic, CoordinateInterpolator, or BaseCoordinateFrame.")
-        
-        self.use_frame = use_frame
         
     def __call__(self, observer: CoordinateInterpolator, target: CoordinateInterpolator, time: Time, bounds_check: bool = True) -> np.ndarray:
         """

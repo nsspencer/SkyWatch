@@ -1,1 +1,2 @@
 from ._base_body_frame_strategy import BaseBodyFrameStrategy
+from .nadir_with_velocity_constraint import NadirWithVelocityConstraint

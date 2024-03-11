@@ -59,28 +59,35 @@ if __name__ == "__main__":
 
     constraints = []
     # constraints.append(Temporal(times[3000], times[4000], inner=True))
-    # constraints.append(AzElRange())
+    # constraints.append(AzElRange(min_el=85*u.deg))
     constraints.append(LineOfSight(Kinematic.from_body(times, 'earth'), use_frame='itrs'))
     # constraints.append(LineOfSight(Kinematic.from_body(times, 'moon'), sma=1737.1*u.km, smi = 1737.1*u.km))
     
     all_access = []
     for point in tqdm.tqdm(earth_positions, desc='Calculating access'):
         point: Kinematic
-        sat_access = sat_position.access_to(point, times, constraints, True, 0.1 * u.s)
+        # sat_access = sat_position.access_to(point, times, constraints, True, 0.1 * u.s)
         point_access = point.access_to(sat_position, times, constraints, True, 0.1 * u.s)
         
-        if len(sat_access) != len(point_access):
-            raise ValueError("Not commutative")
-        for index in range(len(sat_access)):
-            sat_interval = (sat_access._intervals[index].upper - sat_access._intervals[index].lower).datetime.total_seconds()
-            point_interval = (point_access._intervals[index].upper - point_access._intervals[index].lower).datetime.total_seconds()
-            if sat_interval != point_interval:
-                raise ValueError("Not commutative")
+        look_angles = []
+        for interval in point_access:
+            l_times = np.linspace(interval.lower, interval.upper, 400)
+
+            az, el, range = sat_position.look_angles_to(point, l_times)
+            look_angles.append((l_times, az, el, range))
+        
+        # if len(sat_access) != len(point_access):
+        #     raise ValueError("Not commutative")
+        # for index in range(len(sat_access)):
+        #     sat_interval = (sat_access._intervals[index].upper - sat_access._intervals[index].lower).datetime.total_seconds()
+        #     point_interval = (point_access._intervals[index].upper - point_access._intervals[index].lower).datetime.total_seconds()
+        #     if sat_interval != point_interval:
+        #         raise ValueError("Not commutative")
             
-        all_access.append((point, point_access))
+        all_access.append((point, point_access, look_angles))
 
     access_seconds = []
-    for point, access in all_access:
+    for point, access, look_angles in all_access:
         access_seconds.append(access.total_duration.value)
             
     print(pd.DataFrame(access_seconds).describe())

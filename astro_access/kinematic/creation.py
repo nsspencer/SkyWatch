@@ -1,6 +1,6 @@
 import astropy.units as u
 from astropy.time import Time
-from astropy.coordinates import SkyCoord, EarthLocation
+from astropy.coordinates import SkyCoord, EarthLocation, BaseCoordinateFrame
 from astropy.coordinates import get_body
 
 
@@ -47,3 +47,8 @@ class KinematicCreationMixin:
     def from_body(cls, time: Time, body: str = 'earth', *args, **kwargs):
         assert time.size >= 2, "Kinematics required 2 or more time values for interpolation."
         return cls(get_body(body, time, *args, **kwargs))
+    
+    
+    @classmethod
+    def from_base_coordinate(cls, base: BaseCoordinateFrame):
+        return cls(base)
