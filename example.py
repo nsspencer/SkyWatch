@@ -1,7 +1,7 @@
 from astro_access.access.constraints import LineOfSight, AzElRange, Temporal
 from astro_access.tests.tests import get_ephem_data
 from astro_access import Kinematic
-from astro_access.body_frames import LocalTangentPlane
+from astro_access.look_angles import NadirWithVelocityConstraint, ENUAER
 
 import astropy.units as u
 from astropy.time import Time
@@ -62,7 +62,7 @@ if __name__ == "__main__":
     # constraints.append(Temporal(times[3000], times[4000], inner=True))
     constraints.append(AzElRange(min_el=40*u.deg))
     constraints.append(LineOfSight(Kinematic.from_body(times, 'earth'), use_frame='itrs'))
-    # constraints.append(LineOfSight(Kinematic.from_body(times, 'moon'), sma=1737.1*u.km, smi = 1737.1*u.km))
+    constraints.append(LineOfSight(Kinematic.from_body(times, 'moon'), sma=1737.1*u.km, smi = 1737.1*u.km))
     
     all_access = []
     for point in tqdm.tqdm(earth_positions, desc='Calculating access'):
@@ -74,11 +74,9 @@ if __name__ == "__main__":
         for interval in point_access:
             l_times = np.linspace(interval.lower, interval.upper, 400)
 
-            az, el, range = sat_position.look_angles_to(point, l_times)
-            point_az, point_el, point_range = point.look_angles_to(sat_position, l_times, body_frame_strategy=LocalTangentPlane(), frame='itrs')
-            
-            real_point_az_el_range = pymap3d.ecef2aer(*sat_position.coordinate_frame.state_at(l_times, 'itrs', bounds_check=True).cartesian.xyz.to(u.m).value,\
-                *pymap3d.ecef2geodetic(*point.coordinate_frame.state_at(l_times, 'itrs', bounds_check=True).cartesian.xyz.to(u.m).value))
+            az, el, range = sat_position.look_angles_to(point, l_times, NadirWithVelocityConstraint())
+            az1, el1, range1 = sat_position.look_angles_to(point, l_times, NadirWithVelocityConstraint(frame='itrs'))
+            point_az, point_el, point_range = point.look_angles_to(sat_position, l_times, ENUAER(high_fidelity=True))
             look_angles.append((l_times, az, el, range))
         
         # if len(sat_access) != len(point_access):

@@ -1,10 +1,10 @@
 from astro_access.coordinates import CoordinateInterpolator
 from astro_access.access.constraints import BaseAccessConstraint
-from astro_access.access.access import AccessInterval, get_access
-from astro_access.body_frames import BaseBodyFrameStrategy, NadirWithVelocityConstraint
+from astro_access.access.access_funcs import AccessInterval, get_access
 from astro_access.attitude import BaseAttitudeStrategy, Identity
 from astro_access.kinematic.creation import KinematicCreationMixin
-from astro_access.look_angles.look_angles import get_look_angles_to
+from astro_access.look_angles.look_angle_funcs import get_look_angles_to
+from astro_access.look_angles import BaseLookAngleStrategy, NadirWithVelocityConstraint
 
 from astropy.coordinates import SkyCoord, BaseCoordinateFrame
 import astropy.units as u
@@ -32,15 +32,6 @@ class Kinematic(KinematicCreationMixin):
     def look_angles_to(self,
                        target: 'Kinematic',
                        time: Time,
-                       body_frame_strategy: BaseBodyFrameStrategy = NadirWithVelocityConstraint('gcrs'),
-                       attitude_strategy: BaseAttitudeStrategy = Identity(),
-                       frame: str = 'gcrs') -> tuple:
-        body_frame = body_frame_strategy.get_rotation(self.coordinate_frame, time)
-        body_attitude = attitude_strategy.get_rotation(self.coordinate_frame, time)
-        orientation = body_attitude * body_frame
-        
-        observer_pos = self.coordinates_at(time, frame).coordinate_frame.cartesian.xyz.T
-        target_pos = target.coordinates_at(time, frame).coordinate_frame.cartesian.xyz.T
-        
-        return get_look_angles_to(observer_pos, target_pos, orientation)
-    
+                       strategy: BaseLookAngleStrategy) -> tuple:        
+        return strategy(self.coordinate_frame, target.coordinate_frame, time)
+            

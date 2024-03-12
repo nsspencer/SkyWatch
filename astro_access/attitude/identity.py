@@ -11,4 +11,4 @@ class Identity(BaseAttitudeStrategy):
         super().__init__()
         
     def get_rotation(self, coordinate: CoordinateInterpolator, time: Time) -> Rotation:
-        return Rotation.from_matrix(np.array([np.eye(3)] * time.size))
+        return Rotation.from_matrix(np.array(np.eye(3)))

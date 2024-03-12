@@ -1,16 +1,40 @@
-from astro_access.body_frames._base_body_frame_strategy import BaseBodyFrameStrategy
+from astro_access.look_angles.strategies._base_look_angle_stragtegy import BaseLookAngleStrategy
 from astro_access.coordinates.coordinate_interpolator import CoordinateInterpolator
+from astro_access.attitude._base_attitude_strategy import BaseAttitudeStrategy
+from astro_access.attitude.identity import Identity
+from astro_access.look_angles.look_angle_funcs import get_look_angles_to
+
 from astropy.time import Time
 import numpy as np
 from scipy.spatial.transform.rotation import Rotation
 import astropy.units as u
 
-class NadirWithVelocityConstraint(BaseBodyFrameStrategy):
-    def __init__(self, frame: str = 'gcrs', check_orthogonal:bool = True) -> None:
+
+class NadirWithVelocityConstraint(BaseLookAngleStrategy):
+    def __init__(self, frame: str = 'gcrs', attitude: BaseAttitudeStrategy = Identity(), check_orthogonal:bool = True) -> None:
+        """
+        Define the look angles as Z facing nadir, Y as the cross of X and Y, and X in the direction of velocity.
+
+        Args:
+            frame (str, optional): Coordinate frame to compute the look angles in. NOTE: Your attitude must also be defined in this coordinate frame.. Defaults to 'gcrs'.
+            attitude (BaseAttitudeStrategy, optional): Strategy for getting attitude of the body at a given time. Defaults to Identity().
+            check_orthogonal (bool, optional): Checks orthogonal results are produced from the rotation matrices. Defaults to True.
+        """
         super().__init__()
         self.frame = frame
+        self.attitude = attitude
         self.check_orthogonal = check_orthogonal
         
+    def __call__(self, observer: CoordinateInterpolator, target: CoordinateInterpolator, time: Time) -> tuple:
+        observer_rotation = self.get_rotation(observer, time)
+        attitude_rotation = self.attitude.get_rotation(observer, time)
+        observer_orientation = attitude_rotation * observer_rotation
+        
+        observer_position = observer.state_at(time, self.frame).cartesian.xyz.to(u.m)
+        target_position = target.state_at(time, self.frame).cartesian.xyz.to(u.m)
+        return get_look_angles_to(observer_position.T, target_position.T, observer_orientation)
+
+    
     def get_rotation(self, coord: CoordinateInterpolator, time: Time) -> Rotation:
         # stack the vectors into a uniform format
         state = coord.state_at(time, self.frame)
