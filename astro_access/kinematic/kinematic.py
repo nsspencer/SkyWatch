@@ -37,7 +37,7 @@ class Kinematic(KinematicCreationMixin):
                        frame: str = 'gcrs') -> tuple:
         body_frame = body_frame_strategy.get_rotation(self.coordinate_frame, time)
         body_attitude = attitude_strategy.get_rotation(self.coordinate_frame, time)
-        orientation = body_frame * body_attitude
+        orientation = body_attitude * body_frame
         
         observer_pos = self.coordinates_at(time, frame).coordinate_frame.cartesian.xyz.T
         target_pos = target.coordinates_at(time, frame).coordinate_frame.cartesian.xyz.T

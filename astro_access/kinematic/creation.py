@@ -19,7 +19,7 @@ class KinematicCreationMixin:
 
     @classmethod
     @u.quantity_input(x=u.m, y=u.m, z=u.m, v_x=u.m/u.s, v_y=u.m/u.s, v_z=u.m/u.s)
-    def from_ecef(cls,
+    def from_itrs(cls,
                   time: Time,
                   x: u.Quantity, y: u.Quantity, z: u.Quantity,
                   v_x: u.Quantity = None, v_y: u.Quantity = None, v_z: u.Quantity = None):
@@ -32,7 +32,7 @@ class KinematicCreationMixin:
 
     @classmethod
     @u.quantity_input(x=u.m, y=u.m, z=u.m, v_x=u.m/u.s, v_y=u.m/u.s, v_z=u.m/u.s)
-    def from_eci(cls,
+    def from_gcrs(cls,
                  time: Time,
                  x: u.Quantity, y: u.Quantity, z: u.Quantity,
                  v_x: u.Quantity = None, v_y: u.Quantity = None, v_z: u.Quantity = None):

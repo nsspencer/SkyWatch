@@ -64,6 +64,16 @@ def los_to_earth(position, pointing):
         y + d * v,
         z + d * w,
     ])
+    
+@u.quantity_input(latitude=u.deg, longitude=u.deg)
+def calculate_north(latitude:np.ndarray, longitude:np.ndarray) -> np.ndarray:
+    north_direction = np.array([
+        -np.sin(latitude) * np.cos(longitude),
+        -np.sin(latitude) * np.sin(longitude),
+        np.cos(latitude)
+    ])
+    return north_direction
+
 
 def _elevation_between(v1:np.ndarray, v2:np.ndarray) -> np.ndarray:
     """Gets the elevation angle (in degrees) between the two vectors.
@@ -185,17 +195,6 @@ def _counterclockwise_angle_between(v1:np.ndarray, v2:np.ndarray) -> np.ndarray:
     angle = np.where(angle < 0, angle + 360, angle)
     return angle * u.deg
 
-
-@u.quantity_input(latitude=u.deg, longitude=u.deg)
-def calculate_north(latitude:np.ndarray, longitude:np.ndarray) -> np.ndarray:
-    north_direction = np.array([
-        -np.sin(latitude) * np.cos(longitude),
-        -np.sin(latitude) * np.sin(longitude),
-        np.cos(latitude)
-    ])
-    return north_direction
-
-    
     
 def get_look_angles_to(observer_pos: np.ndarray, target_pos: np.ndarray, observer_frame: Rotation) -> tuple:
     """Calculates the look angles from a satellites point of view to a geodedic location.

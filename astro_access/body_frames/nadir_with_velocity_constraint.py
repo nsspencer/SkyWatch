@@ -3,7 +3,6 @@ from astro_access.coordinates.coordinate_interpolator import CoordinateInterpola
 from astropy.time import Time
 import numpy as np
 from scipy.spatial.transform.rotation import Rotation
-from typing import Union
 import astropy.units as u
 
 class NadirWithVelocityConstraint(BaseBodyFrameStrategy):

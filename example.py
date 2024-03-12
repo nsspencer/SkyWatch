@@ -1,6 +1,7 @@
 from astro_access.access.constraints import LineOfSight, AzElRange, Temporal
 from astro_access.tests.tests import get_ephem_data
 from astro_access import Kinematic
+from astro_access.body_frames import LocalTangentPlane
 
 import astropy.units as u
 from astropy.time import Time
@@ -52,14 +53,14 @@ if __name__ == "__main__":
     for lat, lon in tqdm.tqdm(fibonacci_latitude_longitude(num_fib_points), desc='Making Facilities'):
         earth_positions.append(Kinematic.from_geodetic(time=point_times, latitude=lat * u.deg, longitude=lon * u.deg, altitude=0 * u.m))
     
-    sat_position = Kinematic.from_eci(leo_csv_times, *leo_csv_position, leo_csv_velocities)
+    sat_position = Kinematic.from_gcrs(leo_csv_times, *leo_csv_position, leo_csv_velocities)
     sat_position:Kinematic
     interp_sat_position = sat_position.coordinates_at(times[0], 'itrs')
     interp_sat_position2 = interp_sat_position.coordinates_at(times[0], 'gcrs')
 
     constraints = []
     # constraints.append(Temporal(times[3000], times[4000], inner=True))
-    # constraints.append(AzElRange(min_el=85*u.deg))
+    constraints.append(AzElRange(min_el=40*u.deg))
     constraints.append(LineOfSight(Kinematic.from_body(times, 'earth'), use_frame='itrs'))
     # constraints.append(LineOfSight(Kinematic.from_body(times, 'moon'), sma=1737.1*u.km, smi = 1737.1*u.km))
     
@@ -74,6 +75,10 @@ if __name__ == "__main__":
             l_times = np.linspace(interval.lower, interval.upper, 400)
 
             az, el, range = sat_position.look_angles_to(point, l_times)
+            point_az, point_el, point_range = point.look_angles_to(sat_position, l_times, body_frame_strategy=LocalTangentPlane(), frame='itrs')
+            
+            real_point_az_el_range = pymap3d.ecef2aer(*sat_position.coordinate_frame.state_at(l_times, 'itrs', bounds_check=True).cartesian.xyz.to(u.m).value,\
+                *pymap3d.ecef2geodetic(*point.coordinate_frame.state_at(l_times, 'itrs', bounds_check=True).cartesian.xyz.to(u.m).value))
             look_angles.append((l_times, az, el, range))
         
         # if len(sat_access) != len(point_access):
@@ -108,21 +113,21 @@ if __name__ == "__main__":
     # print(f"multiple geodetic: {time.time() - t0}")
 
     # t0 = time.time()
-    # ecef_points = from_ecef(times, points, points, points)
+    # ecef_points = from_itrs(times, points, points, points)
     # print(f"ECEF: {time.time() - t0}")
     
     # t0 = time.time()
-    # eci_points = from_eci(times, points, points, points)
+    # eci_points = from_gcrs(times, points, points, points)
     # print(f"ECI -> ECEF: {time.time() - t0}")
 
     # # now with velocities
     
     # t0 = time.time()
-    # ecef_points_vels = from_ecef(times, points, points, points, velocities, velocities, velocities)
+    # ecef_points_vels = from_itrs(times, points, points, points, velocities, velocities, velocities)
     # print(f"ECEF w/ vel: {time.time() - t0}")
     
     # t0 = time.time()
-    # eci_points_vels = from_eci(times, points, points, points, velocities, velocities, velocities)
+    # eci_points_vels = from_gcrs(times, points, points, points, velocities, velocities, velocities)
     # print(f"ECI -> ECEF w/ vel: {time.time() - t0}")
 
 
