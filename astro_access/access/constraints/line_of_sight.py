@@ -71,6 +71,10 @@ class LineOfSight(BaseAccessConstraint):
         """
         # Make sure the arrays have the same shape
         assert pos1.shape == pos2.shape == pos_body.shape
+        if pos1.ndim == 1:
+            pos1 = np.reshape(pos1, (-1,3))
+            pos2 = np.reshape(pos2, (-1,3))
+            pos_body = np.reshape(pos_body, (-1,3))
 
         # Calculate the line of sight vectors
         los_vectors = pos2 - pos1

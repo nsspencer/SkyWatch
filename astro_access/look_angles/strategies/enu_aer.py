@@ -22,7 +22,7 @@ class ENUAER(BaseLookAngleStrategy):
             alt_az = ITRS(target_state.cartesian.without_differentials(), obstime=time).transform_to(AltAz(location=observer.state_at(time, 'itrs').earth_location, obstime=time))
             az = alt_az.az
             el = alt_az.alt
-            rng =alt_az.distance
+            rng = alt_az.distance
         
         else:
             target_pos = target.state_at(time, 'itrs').cartesian.xyz.to(u.m).value

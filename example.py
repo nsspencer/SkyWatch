@@ -64,6 +64,12 @@ if __name__ == "__main__":
     constraints.append(LineOfSight(Kinematic.from_body(times, 'earth'), use_frame='itrs'))
     constraints.append(LineOfSight(Kinematic.from_body(times, 'moon'), sma=1737.1*u.km, smi = 1737.1*u.km))
     
+    # calculate current sun az el from DC
+    current_time = Time.now()
+    sun_pos = Kinematic.from_body(current_time, 'sun')
+    earth_pos = Kinematic.from_geodetic(time=current_time, latitude=38.907192*u.deg, longitude=-77.036873*u.deg, altitude=0*u.m)
+    earth_to_sun = earth_pos.look_angles_to(sun_pos, current_time, ENUAER(True))
+    
     all_access = []
     for point in tqdm.tqdm(earth_positions, desc='Calculating access'):
         point: Kinematic
@@ -86,7 +92,7 @@ if __name__ == "__main__":
         #     point_interval = (point_access._intervals[index].upper - point_access._intervals[index].lower).datetime.total_seconds()
         #     if sat_interval != point_interval:
         #         raise ValueError("Not commutative")
-            
+        
         all_access.append((point, point_access, look_angles))
 
     access_seconds = []

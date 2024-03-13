@@ -35,7 +35,7 @@ def get_access(observer: CoordinateInterpolator,
     precision = (1 * u.s) / precision
     
     # first pass check of access
-    constrined_times = [np.array([True] * len(time))]
+    constrined_times = [np.array([True] * time.size)]
     for constraint in constraints:
         constrined_times.append(constraint(observer, target, time, bounds_check=True))
     
@@ -71,7 +71,7 @@ def get_access(observer: CoordinateInterpolator,
 
             # calculate the exact end time
             end_index = window_range[1]-1
-            after_end_index = min(window_range[1], len(time)-1)
+            after_end_index = min(window_range[1], time.size-1)
             
             if end_index == after_end_index:
                 exact_end_time = time[end_index] # nothing after the end time to interpolate to
