@@ -131,7 +131,8 @@ def _access_times(constrained_times: np.ndarray, time: Time) -> tuple:
     for range in window_ranges:
         new_time = time[range[0]:range[1]]
         if len(new_time) == 1:
-            continue # need at least 2 times for access to be considered
+            new_time = np.array([time[range[0]]] * 2)
+            # continue # need at least 2 times for access to be considered
         valid_ranges.append(range)
         access_times.append(new_time)
         

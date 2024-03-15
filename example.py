@@ -65,10 +65,11 @@ if __name__ == "__main__":
     constraints.append(LineOfSight(Kinematic.from_body(times, 'moon'), sma=1737.1*u.km, smi = 1737.1*u.km))
     
     # calculate current sun az el from DC
-    current_time = Time.now()
+    current_time = np.linspace(Time("2024-03-14 21:23:45.430137"), Time("2024-03-15 02:23:45.430137"), 100)
     sun_pos = Kinematic.from_body(current_time, 'sun')
     earth_pos = Kinematic.from_geodetic(time=current_time, latitude=38.907192*u.deg, longitude=-77.036873*u.deg, altitude=0*u.m)
     earth_to_sun = earth_pos.look_angles_to(sun_pos, current_time, ENUAER(True))
+    eart_sun_access = earth_pos.access_to(sun_pos, current_time, [LineOfSight(Kinematic.from_body(current_time, 'earth'), use_frame='itrs')])
     
     all_access = []
     for point in tqdm.tqdm(earth_positions, desc='Calculating access'):
@@ -81,8 +82,8 @@ if __name__ == "__main__":
             l_times = np.linspace(interval.lower, interval.upper, 400)
 
             az, el, range = sat_position.look_angles_to(point, l_times, NadirWithVelocityConstraint())
-            az1, el1, range1 = sat_position.look_angles_to(point, l_times, NadirWithVelocityConstraint(frame='itrs'))
-            point_az, point_el, point_range = point.look_angles_to(sat_position, l_times, ENUAER(high_fidelity=True))
+            # az1, el1, range1 = sat_position.look_angles_to(point, l_times, NadirWithVelocityConstraint(frame='itrs'))
+            # point_az, point_el, point_range = point.look_angles_to(sat_position, l_times, ENUAER(high_fidelity=True))
             look_angles.append((l_times, az, el, range))
         
         # if len(sat_access) != len(point_access):
