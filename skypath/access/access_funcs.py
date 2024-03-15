@@ -4,8 +4,8 @@ import portion as P
 
 from typing import List
 from astropy.time import Time
-from astro_access.coordinates.coordinate_interpolator import CoordinateInterpolator
-from astro_access.access.constraints._base_constraint import BaseAccessConstraint
+from skypath.coordinates.coordinate_interpolator import CoordinateInterpolator
+from skypath.access.constraints._base_constraint import BaseAccessConstraint
 
 
         

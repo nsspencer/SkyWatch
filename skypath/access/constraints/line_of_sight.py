@@ -1,6 +1,6 @@
-from astro_access.access.constraints._base_constraint import BaseAccessConstraint
-from astro_access.coordinates.coordinate_interpolator import CoordinateInterpolator
-from astro_access.kinematic import Kinematic
+from skypath.access.constraints._base_constraint import BaseAccessConstraint
+from skypath.coordinates.coordinate_interpolator import CoordinateInterpolator
+from skypath.skypath import SkyPath
 from astropy.coordinates import BaseCoordinateFrame
 
 import astropy.units as u
@@ -10,13 +10,13 @@ from typing import Union
 
 
 class LineOfSight(BaseAccessConstraint):
-    def __init__(self, body: Union[Kinematic, CoordinateInterpolator, BaseCoordinateFrame], sma = 6378.137 * u.km, smi = 6356.7523 * u.km, use_frame: str = 'itrs') -> None:
+    def __init__(self, body: Union[SkyPath, CoordinateInterpolator, BaseCoordinateFrame], sma = 6378.137 * u.km, smi = 6356.7523 * u.km, use_frame: str = 'itrs') -> None:
         """
         Line of sight constraint which checks that the line of sight between two positions
         is not blocked by some body with a given semi major and semi minor access.
 
         Args:
-            body (Union[Kinematic, CoordinateInterpolator, BaseCoordinateFrame]): coordinate of the body which potentially blocks line of sight.
+            body (Union[SkyPath, CoordinateInterpolator, BaseCoordinateFrame]): coordinate of the body which potentially blocks line of sight.
             sma (Quantity, optional): semi major axis of the body. Defaults to 6378.137*u.km.
             smi (Quantity, optional): semi minor axis of the body. Defaults to 6356.7523*u.km.
             use_frame (str, optional): coordinate frame name to calculate access in. Defaults to 'itrs'.
@@ -25,14 +25,14 @@ class LineOfSight(BaseAccessConstraint):
         self.sma = sma
         self.smi = smi
         self.use_frame = use_frame
-        if isinstance(body, Kinematic):
+        if isinstance(body, SkyPath):
             self.body = body.coordinate_frame
         elif isinstance(body, CoordinateInterpolator):
             self.body = body
         elif isinstance(body, BaseCoordinateFrame):
             self.body = CoordinateInterpolator(body)
         else:
-            raise TypeError("Body must be a Kinematic, CoordinateInterpolator, or BaseCoordinateFrame.")
+            raise TypeError("Body must be a SkyPath, CoordinateInterpolator, or BaseCoordinateFrame.")
         
     def __call__(self, observer: CoordinateInterpolator, target: CoordinateInterpolator, time: Time, bounds_check: bool = True) -> np.ndarray:
         """
@@ -46,7 +46,7 @@ class LineOfSight(BaseAccessConstraint):
             of the observer and target CoordinateInterpolator.
 
         Returns:
-            Time: boolean array of times when this Kinematic has line of sight access to the target.
+            Time: boolean array of times when this SkyPath has line of sight access to the target.
         """
         assert self != target, "Cannot get line of sight to self"
         pos1 = observer.state_at(time, self.use_frame, bounds_check=bounds_check).cartesian.xyz

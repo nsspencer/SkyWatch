@@ -1,5 +1,5 @@
 import unittest
-from astro_access.coordinates.coordinate_interpolator import CoordinateInterpolator
+from skypath.coordinates.coordinate_interpolator import CoordinateInterpolator
 import csv
 import os
 

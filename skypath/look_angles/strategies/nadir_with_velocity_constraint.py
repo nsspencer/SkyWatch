@@ -1,8 +1,8 @@
-from astro_access.look_angles.strategies._base_look_angle_stragtegy import BaseLookAngleStrategy
-from astro_access.coordinates.coordinate_interpolator import CoordinateInterpolator
-from astro_access.attitude._base_attitude_strategy import BaseAttitudeStrategy
-from astro_access.attitude.identity import Identity
-from astro_access.look_angles.look_angle_funcs import get_look_angles_to
+from skypath.look_angles.strategies._base_look_angle_stragtegy import BaseLookAngleStrategy
+from skypath.coordinates.coordinate_interpolator import CoordinateInterpolator
+from skypath.attitude._base_attitude_strategy import BaseAttitudeStrategy
+from skypath.attitude.identity import Identity
+from skypath.look_angles.look_angle_funcs import get_look_angles_to
 
 from astropy.time import Time
 import numpy as np

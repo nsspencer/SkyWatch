@@ -1,7 +1,7 @@
 from abc import ABC, abstractclassmethod
 from astropy.time import Time
 import numpy as np
-from astro_access.coordinates import CoordinateInterpolator
+from skypath.coordinates import CoordinateInterpolator
 
 
 class BaseAccessConstraint(ABC):

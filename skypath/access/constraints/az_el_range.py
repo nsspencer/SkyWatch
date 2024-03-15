@@ -1,5 +1,5 @@
-from astro_access.access.constraints._base_constraint import BaseAccessConstraint
-from astro_access.coordinates.coordinate_interpolator import CoordinateInterpolator
+from skypath.access.constraints._base_constraint import BaseAccessConstraint
+from skypath.coordinates.coordinate_interpolator import CoordinateInterpolator
 import astropy.units as u
 from astropy.time import Time
 import numpy as np

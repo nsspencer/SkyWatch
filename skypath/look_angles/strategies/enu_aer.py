@@ -1,5 +1,5 @@
-from astro_access.look_angles.strategies._base_look_angle_stragtegy import BaseLookAngleStrategy
-from astro_access.coordinates.coordinate_interpolator import CoordinateInterpolator
+from skypath.look_angles.strategies._base_look_angle_stragtegy import BaseLookAngleStrategy
+from skypath.coordinates.coordinate_interpolator import CoordinateInterpolator
 from astropy.time import Time
 import pymap3d
 import astropy.units as u

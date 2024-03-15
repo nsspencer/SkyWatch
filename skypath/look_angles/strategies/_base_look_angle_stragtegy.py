@@ -1,5 +1,5 @@
 from abc import ABC, abstractclassmethod
-from astro_access.coordinates.coordinate_interpolator import CoordinateInterpolator
+from skypath.coordinates.coordinate_interpolator import CoordinateInterpolator
 from astropy.time import Time
 
 

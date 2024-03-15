@@ -1,5 +1,5 @@
-from astro_access.attitude._base_attitude_strategy import BaseAttitudeStrategy
-from astro_access.coordinates.coordinate_interpolator import CoordinateInterpolator
+from skypath.attitude._base_attitude_strategy import BaseAttitudeStrategy
+from skypath.coordinates.coordinate_interpolator import CoordinateInterpolator
 from astropy.time import Time
 from scipy.spatial.transform.rotation import Rotation
 import numpy as np

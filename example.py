@@ -1,7 +1,7 @@
-from astro_access.access.constraints import LineOfSight, AzElRange, Temporal
-from astro_access.tests.tests import get_ephem_data
-from astro_access import Kinematic
-from astro_access.look_angles import NadirWithVelocityConstraint, ENUAER
+from skypath.access.constraints import LineOfSight, AzElRange, Temporal
+from skypath.tests.tests import get_ephem_data
+from skypath import SkyPath
+from skypath.look_angles import NadirWithVelocityConstraint, ENUAER
 
 import astropy.units as u
 from astropy.time import Time
@@ -51,29 +51,29 @@ if __name__ == "__main__":
     num_fib_points = 1000
     point_times = np.linspace(times[0], times[-1], 250)
     for lat, lon in tqdm.tqdm(fibonacci_latitude_longitude(num_fib_points), desc='Making Facilities'):
-        earth_positions.append(Kinematic.from_geodetic(time=point_times, latitude=lat * u.deg, longitude=lon * u.deg, altitude=0 * u.m))
+        earth_positions.append(SkyPath.from_geodetic(time=point_times, latitude=lat * u.deg, longitude=lon * u.deg, altitude=0 * u.m))
     
-    sat_position = Kinematic.from_ECI(leo_csv_times, *leo_csv_position, leo_csv_velocities)
-    sat_position:Kinematic
+    sat_position = SkyPath.from_ECI(leo_csv_times, *leo_csv_position, leo_csv_velocities)
+    sat_position:SkyPath
     interp_sat_position = sat_position.state_at(times[0], 'itrs')
     interp_sat_position2 = interp_sat_position.state_at(times[0], 'gcrs')
 
     constraints = []
     # constraints.append(Temporal(times[3000], times[4000], inner=True))
     constraints.append(AzElRange(min_el=40*u.deg))
-    constraints.append(LineOfSight(Kinematic.from_body(times, 'earth'), use_frame='itrs'))
-    constraints.append(LineOfSight(Kinematic.from_body(times, 'moon'), sma=1737.1*u.km, smi = 1737.1*u.km))
+    constraints.append(LineOfSight(SkyPath.from_body(times, 'earth'), use_frame='itrs'))
+    constraints.append(LineOfSight(SkyPath.from_body(times, 'moon'), sma=1737.1*u.km, smi = 1737.1*u.km))
     
     # calculate current sun az el from DC
     current_time = np.linspace(Time("2024-03-14 21:23:45.430137"), Time("2024-03-15 02:23:45.430137"), 100)
-    sun_pos = Kinematic.from_body(current_time, 'sun')
-    earth_pos = Kinematic.from_geodetic(time=current_time, latitude=38.907192*u.deg, longitude=-77.036873*u.deg, altitude=0*u.m)
+    sun_pos = SkyPath.from_body(current_time, 'sun')
+    earth_pos = SkyPath.from_geodetic(time=current_time, latitude=38.907192*u.deg, longitude=-77.036873*u.deg, altitude=0*u.m)
     earth_to_sun = earth_pos.look_angles_to(sun_pos, current_time, ENUAER(True))
-    eart_sun_access = earth_pos.access_to(sun_pos, current_time, [LineOfSight(Kinematic.from_body(current_time, 'earth'), use_frame='itrs')])
+    eart_sun_access = earth_pos.access_to(sun_pos, current_time, [LineOfSight(SkyPath.from_body(current_time, 'earth'), use_frame='itrs')])
     
     all_access = []
     for point in tqdm.tqdm(earth_positions, desc='Calculating access'):
-        point: Kinematic
+        point: SkyPath
         # sat_access = sat_position.access_to(point, times, constraints, True, 0.1 * u.s)
         point_access = point.access_to(sat_position, times, constraints, True, 0.1 * u.s)
         
@@ -110,29 +110,29 @@ if __name__ == "__main__":
     # position only
     
     t0 = time.time()
-    earth_point = Kinematic.from_geodetic(scenario_start, 0 * u.deg, 0 * u.deg, 0 * u.m)
+    earth_point = SkyPath.from_geodetic(scenario_start, 0 * u.deg, 0 * u.deg, 0 * u.m)
     print(f"single geodetic: {time.time() - t0}")
     
     t0 = time.time()
-    multi_earth_points = Kinematic.from_geodetic(times, lat_points * u.deg, lon_points * u.deg, points)
+    multi_earth_points = SkyPath.from_geodetic(times, lat_points * u.deg, lon_points * u.deg, points)
     print(f"multiple geodetic: {time.time() - t0}")
 
     t0 = time.time()
-    ecef_points = Kinematic.from_ECEF(times, points, points, points)
+    ecef_points = SkyPath.from_ECEF(times, points, points, points)
     print(f"ECEF: {time.time() - t0}")
     
     t0 = time.time()
-    eci_points = Kinematic.from_ECI(times, points, points, points)
+    eci_points = SkyPath.from_ECI(times, points, points, points)
     print(f"ECI -> ECEF: {time.time() - t0}")
 
     # now with velocities
     
     t0 = time.time()
-    ecef_points_vels = Kinematic.from_ECEF(times, points, points, points, velocities, velocities, velocities)
+    ecef_points_vels = SkyPath.from_ECEF(times, points, points, points, velocities, velocities, velocities)
     print(f"ECEF w/ vel: {time.time() - t0}")
     
     t0 = time.time()
-    eci_points_vels = Kinematic.from_ECI(times, points, points, points, velocities, velocities, velocities)
+    eci_points_vels = SkyPath.from_ECI(times, points, points, points, velocities, velocities, velocities)
     print(f"ECI -> ECEF w/ vel: {time.time() - t0}")
 
 
@@ -148,14 +148,14 @@ if __name__ == "__main__":
     
     
     # test with the single earth point
-    cs0 = Kinematic(earth_point)
+    cs0 = SkyPath(earth_point)
     cs0_itrs = cs0.state_at(times, 'itrs')
     cs0_gcrs = cs0.state_at(times, 'gcrs')
     cs0_icrs = cs0.state_at(times, 'icrs')
     
     # now create a CoordinateInterpolator
     
-    cs1 = Kinematic(ecef_points_vels)
+    cs1 = SkyPath(ecef_points_vels)
     new_times = np.linspace(scenario_start, scenario_end, num_elements*1)
     
     print(f"\n\nNum interp times: {len(new_times):,}")
@@ -188,7 +188,7 @@ if __name__ == "__main__":
     
     print("\n\nGeodetic test no velocity: ")
     
-    cs2 = Kinematic(multi_earth_points)
+    cs2 = SkyPath(multi_earth_points)
     print(f"\n\nNum interp times: {len(new_times):,}")
     
     t0 = time.time()
