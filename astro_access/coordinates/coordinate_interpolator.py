@@ -3,7 +3,6 @@ from astropy.time import Time
 from astropy.coordinates import SkyCoord
 import numpy as np
 from scipy.interpolate import CubicSpline, CubicHermiteSpline
-from astropy.coordinates.sky_coordinate_parsers import _get_frame_class
     
     
 class CoordinateInterpolator(SkyCoord):
@@ -68,7 +67,6 @@ class CoordinateInterpolator(SkyCoord):
         """
         if not self._interpolation_allowed:
             return CoordinateInterpolator(SkyCoord(self.frame.cartesian, obstime=time, frame=self.frame.name).transform_to(frame))
-            # raise ValueError("At least 2 data points/times are required to interpolate coordinates.")
         
         if bounds_check:
             if self._min_original_time is None:

@@ -18,7 +18,7 @@ class AccessInterval(P.Interval):
     def total_duration(self) -> u.s:
         duration = 0
         for interval in self:
-            duration += (interval.upper - interval.lower).datetime.total_seconds()
+            duration += (Time(interval.upper) - Time(interval.lower)).datetime.total_seconds()
         return duration * u.s
 
 
@@ -30,6 +30,9 @@ def get_access(observer: CoordinateInterpolator,
                 constraints: List[BaseAccessConstraint] = [],
                 find_precise_times: bool = True,
                 precision: u.s = 1 * u.s) -> AccessInterval:
+    
+    if not isinstance(time, Time):
+        time = Time(time)
     
     # scale the precision to reflect the it in terms of seconds
     precision = (1 * u.s) / precision
