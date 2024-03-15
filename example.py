@@ -55,8 +55,8 @@ if __name__ == "__main__":
     
     sat_position = Kinematic.from_gcrs(leo_csv_times, *leo_csv_position, leo_csv_velocities)
     sat_position:Kinematic
-    interp_sat_position = sat_position.coordinates_at(times[0], 'itrs')
-    interp_sat_position2 = interp_sat_position.coordinates_at(times[0], 'gcrs')
+    interp_sat_position = sat_position.state_at(times[0], 'itrs')
+    interp_sat_position2 = interp_sat_position.state_at(times[0], 'gcrs')
 
     constraints = []
     # constraints.append(Temporal(times[3000], times[4000], inner=True))
@@ -102,116 +102,116 @@ if __name__ == "__main__":
             
     print(pd.DataFrame(access_seconds).describe())
         
-    # points = np.linspace(0, 6437100, num_elements) * u.m
-    # velocities = np.zeros_like(points).value * (u.m/u.s)
-    # lat_points = np.linspace(-90, 90, num_elements)
-    # lon_points = np.linspace(-180, 180, num_elements)
+    points = np.linspace(0, 6437100, num_elements) * u.m
+    velocities = np.zeros_like(points).value * (u.m/u.s)
+    lat_points = np.linspace(-90, 90, num_elements)
+    lon_points = np.linspace(-180, 180, num_elements)
     
-    # # position only
+    # position only
     
-    # t0 = time.time()
-    # earth_point = from_geodetic(scenario_start, 0 * u.deg, 0 * u.deg, 0 * u.m)
-    # print(f"single geodetic: {time.time() - t0}")
+    t0 = time.time()
+    earth_point = Kinematic.from_geodetic(scenario_start, 0 * u.deg, 0 * u.deg, 0 * u.m)
+    print(f"single geodetic: {time.time() - t0}")
     
-    # t0 = time.time()
-    # multi_earth_points = from_geodetic(times, lat_points * u.deg, lon_points * u.deg, points)
-    # print(f"multiple geodetic: {time.time() - t0}")
+    t0 = time.time()
+    multi_earth_points = Kinematic.from_geodetic(times, lat_points * u.deg, lon_points * u.deg, points)
+    print(f"multiple geodetic: {time.time() - t0}")
 
-    # t0 = time.time()
-    # ecef_points = from_itrs(times, points, points, points)
-    # print(f"ECEF: {time.time() - t0}")
+    t0 = time.time()
+    ecef_points = Kinematic.from_itrs(times, points, points, points)
+    print(f"ECEF: {time.time() - t0}")
     
-    # t0 = time.time()
-    # eci_points = from_gcrs(times, points, points, points)
-    # print(f"ECI -> ECEF: {time.time() - t0}")
+    t0 = time.time()
+    eci_points = Kinematic.from_gcrs(times, points, points, points)
+    print(f"ECI -> ECEF: {time.time() - t0}")
 
-    # # now with velocities
+    # now with velocities
     
-    # t0 = time.time()
-    # ecef_points_vels = from_itrs(times, points, points, points, velocities, velocities, velocities)
-    # print(f"ECEF w/ vel: {time.time() - t0}")
+    t0 = time.time()
+    ecef_points_vels = Kinematic.from_itrs(times, points, points, points, velocities, velocities, velocities)
+    print(f"ECEF w/ vel: {time.time() - t0}")
     
-    # t0 = time.time()
-    # eci_points_vels = from_gcrs(times, points, points, points, velocities, velocities, velocities)
-    # print(f"ECI -> ECEF w/ vel: {time.time() - t0}")
+    t0 = time.time()
+    eci_points_vels = Kinematic.from_gcrs(times, points, points, points, velocities, velocities, velocities)
+    print(f"ECI -> ECEF w/ vel: {time.time() - t0}")
 
 
-    # # now cross check computation time with pymap3d (without velocities)
+    # now cross check computation time with pymap3d (without velocities)
 
-    # t0 = time.time()
-    # ecef_vals = pymap3d.eci2ecef(points.value, points.value, points.value, times)
-    # print(f"pymap3d ECI -> ECEF: {time.time() - t0}")
+    t0 = time.time()
+    ecef_vals = pymap3d.eci2ecef(points.value, points.value, points.value, times)
+    print(f"pymap3d ECI -> ECEF: {time.time() - t0}")
     
-    # t0 = time.time()
-    # eci_vals = pymap3d.ecef2eci(points.value, points.value, points.value, times)
-    # print(f"pymap3d ECEF -> ECI: {time.time() - t0}")
+    t0 = time.time()
+    eci_vals = pymap3d.ecef2eci(points.value, points.value, points.value, times)
+    print(f"pymap3d ECEF -> ECI: {time.time() - t0}")
     
     
-    # # test with the single earth point
-    # cs0 = CoordinateInterpolator(earth_point)
-    # cs0_itrs = cs0.state_at(times, 'itrs')
-    # cs0_gcrs = cs0.state_at(times, 'gcrs')
-    # cs0_icrs = cs0.state_at(times, 'icrs')
+    # test with the single earth point
+    cs0 = Kinematic(earth_point)
+    cs0_itrs = cs0.state_at(times, 'itrs')
+    cs0_gcrs = cs0.state_at(times, 'gcrs')
+    cs0_icrs = cs0.state_at(times, 'icrs')
     
-    # # now create a CoordinateInterpolator
+    # now create a CoordinateInterpolator
     
-    # cs1 = CoordinateInterpolator(ecef_points_vels)
-    # new_times = np.linspace(scenario_start, scenario_end, num_elements*1)
+    cs1 = Kinematic(ecef_points_vels)
+    new_times = np.linspace(scenario_start, scenario_end, num_elements*1)
     
-    # print(f"\n\nNum interp times: {len(new_times):,}")
+    print(f"\n\nNum interp times: {len(new_times):,}")
     
-    # t0 = time.time()
-    # eci_pos = cs1.state_at(new_times, 'gcrs')
-    # print(f"Initial to GCRS: {time.time() - t0}")
+    t0 = time.time()
+    eci_pos = cs1.state_at(new_times, 'gcrs')
+    print(f"Initial to GCRS: {time.time() - t0}")
     
-    # t0 = time.time()
-    # eci_pos2 = cs1.state_at(new_times, 'gcrs')
-    # print(f"Interp to GCRS: {time.time() - t0}")
+    t0 = time.time()
+    eci_pos2 = cs1.state_at(new_times, 'gcrs')
+    print(f"Interp to GCRS: {time.time() - t0}")
     
-    # t0 = time.time()
-    # ecef_pos = cs1.state_at(new_times, 'itrs')
-    # print(f"Initial to ITRS: {time.time() - t0}")
+    t0 = time.time()
+    ecef_pos = cs1.state_at(new_times, 'itrs')
+    print(f"Initial to ITRS: {time.time() - t0}")
     
-    # t0 = time.time()
-    # ecef_pos2 = cs1.state_at(new_times, 'itrs')
-    # print(f"Interp to ITRS: {time.time() - t0}")
+    t0 = time.time()
+    ecef_pos2 = cs1.state_at(new_times, 'itrs')
+    print(f"Interp to ITRS: {time.time() - t0}")
     
-    # t0 = time.time()
-    # icrs_pos = cs1.state_at(new_times, 'icrs')
-    # print(f"initial to ICRS: {time.time() - t0}")
+    t0 = time.time()
+    icrs_pos = cs1.state_at(new_times, 'icrs')
+    print(f"initial to ICRS: {time.time() - t0}")
     
-    # t0 = time.time()
-    # icrs_pos2 = cs1.state_at(new_times, 'icrs')
-    # print(f"Interp to ICRS: {time.time() - t0}")
+    t0 = time.time()
+    icrs_pos2 = cs1.state_at(new_times, 'icrs')
+    print(f"Interp to ICRS: {time.time() - t0}")
     
-    # # now test the geodedic point with no velocity
+    # now test the geodedic point with no velocity
     
-    # print("\n\nGeodetic test no velocity: ")
+    print("\n\nGeodetic test no velocity: ")
     
-    # cs2 = CoordinateInterpolator(multi_earth_points)
-    # print(f"\n\nNum interp times: {len(new_times):,}")
+    cs2 = Kinematic(multi_earth_points)
+    print(f"\n\nNum interp times: {len(new_times):,}")
     
-    # t0 = time.time()
-    # eci_pos = cs2.state_at(new_times, 'gcrs')
-    # print(f"Initial to GCRS: {time.time() - t0}")
+    t0 = time.time()
+    eci_pos = cs2.state_at(new_times, 'gcrs')
+    print(f"Initial to GCRS: {time.time() - t0}")
     
-    # t0 = time.time()
-    # eci_pos2 = cs2.state_at(new_times, 'gcrs')
-    # print(f"Interp to GCRS: {time.time() - t0}")
+    t0 = time.time()
+    eci_pos2 = cs2.state_at(new_times, 'gcrs')
+    print(f"Interp to GCRS: {time.time() - t0}")
     
-    # t0 = time.time()
-    # ecef_pos = cs2.state_at(new_times, 'itrs')
-    # print(f"Initial to ITRS: {time.time() - t0}")
+    t0 = time.time()
+    ecef_pos = cs2.state_at(new_times, 'itrs')
+    print(f"Initial to ITRS: {time.time() - t0}")
     
-    # t0 = time.time()
-    # ecef_pos2 = cs2.state_at(new_times, 'itrs')
-    # print(f"Interp to ITRS: {time.time() - t0}")
+    t0 = time.time()
+    ecef_pos2 = cs2.state_at(new_times, 'itrs')
+    print(f"Interp to ITRS: {time.time() - t0}")
     
-    # t0 = time.time()
-    # icrs_pos = cs2.state_at(new_times, 'icrs')
-    # print(f"initial to ICRS: {time.time() - t0}")
+    t0 = time.time()
+    icrs_pos = cs2.state_at(new_times, 'icrs')
+    print(f"initial to ICRS: {time.time() - t0}")
     
-    # t0 = time.time()
-    # icrs_pos2 = cs2.state_at(new_times, 'icrs')
-    # print(f"Interp to ICRS: {time.time() - t0}")
-    # pass
+    t0 = time.time()
+    icrs_pos2 = cs2.state_at(new_times, 'icrs')
+    print(f"Interp to ICRS: {time.time() - t0}")
+    pass
