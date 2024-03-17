@@ -19,15 +19,25 @@ class Access:
                 )
             self.constraints.append(constraint)
 
-        self.precise_endpoints = False
-        self.precision = 0.1 * u.s
+        self._precision = 0.001 * u.s
+        self._precise_endpoints = False
+        self._min_duration = None
+        self._max_duration = None
 
     def use_precise_endpoints(self, value: bool) -> "Access":
-        self.precise_endpoints = value
+        self._precise_endpoints = value
         return self
 
     def set_precision(self, precision: u.s) -> "Access":
-        self.precision = precision
+        self._precision = precision
+        return self
+
+    def set_min_duration(self, duration: u.s) -> "Access":
+        self._min_duration = duration
+        return self
+
+    def set_max_duration(self, duration: u.s) -> "Access":
+        self._max_duration = duration
         return self
 
     def add_constraint(self, constraint: BaseAccessConstraint) -> "Access":
@@ -63,12 +73,12 @@ class Access:
         valid_ranges, access_times = Access._access_times(valid_time, time)
 
         # if no access or if not using precise timing, set the first pass as the final access
-        if not self.precise_endpoints or len(self.constraints) == 0:
+        if not self._precise_endpoints or len(self.constraints) == 0:
             final_access_times = access_times
 
         else:
             # scale the precision to reflect the it in terms of seconds
-            precision = (1 * u.s) / self.precision
+            precision = (1 * u.s) / self._precision
 
             # calculate access at the precise time scale around the start and stop times of each window
             final_access_times = []
@@ -134,6 +144,16 @@ class Access:
         access = AccessInterval()
         for access_time in final_access_times:
             t_start, t_end = access_time[0], access_time[-1]
+            if self._min_duration is not None:
+                if (
+                    t_end - t_start
+                ).datetime.total_seconds() * u.s < self._min_duration:
+                    continue
+            if self._max_duration is not None:
+                if (
+                    t_end - t_start
+                ).datetime.total_seconds() * u.s > self._max_duration:
+                    continue
             access = access.union(P.closed(t_start, t_end))
 
         return access

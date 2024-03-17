@@ -2,7 +2,6 @@ import time
 
 import astropy.units as u
 import numpy as np
-import tqdm
 from astropy.time import Time
 
 from skypath.tests.tests import get_ephem_data
@@ -41,22 +40,30 @@ def test1():
         leo_csv_times, *leo_csv_position, leo_csv_velocities
     )
 
-    gs_to_sat_access_algorithm = (
+    t0 = time.time()
+    access_times = (
         Access(
+            # when my ground station can see my satellite without being obstructed by the earth
             LineOfSight(ground_station_pos, sat_position, earth_pos),
-            # AzElRange(ground_station_pos, sat_position, min_el=25 * u.deg),
-            # Temporal(low_fidelity_times[10], low_fidelity_times[700], True),
+            # when the sun angle is low to the horizon
+            AzElRange(ground_station_pos, sun_pos, min_el=0 * u.deg, max_el=5 * u.deg),
+            # when my satellite can see the sun
             LineOfSight(sat_position, sun_pos, earth_pos),
-            # AzElRange(ground_station_pos, sun_pos, max_el=10 * u.deg),
-            LineOfSight(sat_position, moon_pos, earth_pos),
-            # AzElRange(ground_station_pos, moon_pos, min_el=0 * u.deg),
+            # when its after 10:15pm but before 10:17pm
+            Temporal(
+                min_time=Time("2024-02-01T22:15:00"),
+                max_time=Time("2024-02-01T22:17:00"),
+            ),
+            # when the moon can see the sun without being blocked by the earth
+            LineOfSight(moon_pos, sun_pos, earth_pos),
         )
         .use_precise_endpoints(True)
-        .set_precision(0.1 * u.s)
+        .set_precision(0.001 * u.s)
+        .set_min_duration(60 * u.s)(high_fidelity_times)
     )
+    t1 = time.time()
+    print(f"Access calculation took: {t1-t0} seconds")
 
-    for _ in tqdm.tqdm(range(100)):
-        access_times = gs_to_sat_access_algorithm(high_fidelity_times)
     print(access_times.total_duration)
     print(access_times)
     pass

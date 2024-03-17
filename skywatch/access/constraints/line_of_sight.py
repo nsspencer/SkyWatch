@@ -19,7 +19,7 @@ class LineOfSight(BaseAccessConstraint):
         sma=6378.137 * u.km,
         smi=6356.7523 * u.km,
         use_frame: str = "itrs",
-        when_not_obstructed: bool = True,
+        when_obstructed: bool = False,
     ) -> None:
         """
         Line of sight constraint which checks that the line of sight between two positions
@@ -37,7 +37,7 @@ class LineOfSight(BaseAccessConstraint):
         ), "Observer cannot be the same object as the target"
         self.observer = observer
         self.target = target
-        self.when_not_obstructed = when_not_obstructed
+        self.when_obstructed = when_obstructed
 
         self.sma = sma
         self.smi = smi
@@ -78,9 +78,9 @@ class LineOfSight(BaseAccessConstraint):
         los_times = self._line_of_sight_body(
             pos1.T, pos2.T, obstructor_pos.T, self.sma, self.smi
         )
-        if self.when_not_obstructed:
-            return ~los_times
-        return los_times
+        if self.when_obstructed:
+            return los_times
+        return ~los_times
 
     @staticmethod
     def _line_of_sight_body(

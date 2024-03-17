@@ -5,7 +5,9 @@ from ._base_constraint import BaseAccessConstraint
 
 
 class Temporal(BaseAccessConstraint):
-    def __init__(self, from_time: Time, to_time: Time, inner: bool = True) -> None:
+    def __init__(
+        self, min_time: Time = None, max_time: Time = None, inner: bool = True
+    ) -> None:
         """
         Only allows times in the time array that are within self.from_time and self.to_time (if self.inner is True)
         to pass the constraint.
@@ -20,9 +22,14 @@ class Temporal(BaseAccessConstraint):
             this constraint. If False, only times outside the time bounds will pass. Defaults to True.
         """
         super().__init__()
-        self.from_time = from_time
-        self.to_time = to_time
+        self.min_time = min_time
+        self.max_time = max_time
         self.inner = inner
+
+        if self.min_time is None and self.max_time is None:
+            raise ValueError(
+                "Min time and Max time cannot both be None. You must set one, or both."
+            )
 
     def __call__(self, time: Time, *args, **kwargs) -> np.ndarray:
         """
@@ -37,6 +44,14 @@ class Temporal(BaseAccessConstraint):
         Returns:
             np.ndarray: Boolean array representing times that pass this constraint.
         """
-        if self.inner:
-            return (time >= self.from_time) & (time <= self.to_time)
-        return (time <= self.from_time) | (time >= self.to_time)
+        if self.min_time is not None and self.max_time is not None:
+            if self.inner:
+                return (time >= self.min_time) & (time <= self.max_time)
+            else:
+                return (time <= self.min_time) | (time >= self.max_time)
+
+        if self.min_time is not None:
+            return time >= self.min_time
+
+        if self.max_time is not None:
+            return time <= self.max_time
