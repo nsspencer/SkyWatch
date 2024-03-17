@@ -1,7 +1,8 @@
 import math
+from typing import List
 
 
-def fibonacci_latitude_longitude(samples=1000):
+def fibonacci_latitude_longitude(samples=1000) -> List[tuple]:
     points = []
     phi = math.pi * (3.0 - math.sqrt(5.0))  # golden angle in radians
 

@@ -1,0 +1,1 @@
+from ._base_attitude import BaseAttitudeStrategy

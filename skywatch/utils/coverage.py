@@ -246,11 +246,12 @@ def calculate_coverage(
     min_elevation: u.deg = 0 * u.deg,
     precision: u.s = 0.1 * u.s,
     min_duration: u.s = 0.0 * u.s,
+    point_generator_fn=fibonacci_latitude_longitude,
 ) -> CoverageResult:
 
     earth_point_coverages = []
     earth_points = []
-    for lat, lon in fibonacci_latitude_longitude(num_earth_points):
+    for lat, lon in point_generator_fn(num_earth_points):
         lat, lon = lat * u.deg, lon * u.deg
         earth_points.append(SkyPath.from_geodetic(time[0], lat, lon, 0 * u.m))
         earth_point_coverages.append(

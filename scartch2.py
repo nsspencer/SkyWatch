@@ -130,7 +130,30 @@ def coverage_test():
     print(f"Equatorial max revisit time: {at_equator_coverage.max_revisit_time}")
 
 
+def look_angles_test():
+    t_start = Time("2024-02-01T00:00:00")
+    t_end = Time("2024-02-02T00:00:00")
+    times = np.linspace(t_start, t_end, 8640)
+
+    sat_position = get_ephem_as_skypath()
+    ground_station_pos = SkyPath.from_geodetic(
+        times[0], 34.5 * u.deg, -77.0 * u.deg, 0 * u.m
+    )
+
+    gs_to_sat_look_angles_fn = LookAngle(ground_station_pos, strategy=LocalTangentENU())
+    gs_to_sat_look_angles = gs_to_sat_look_angles_fn(times, sat_position)
+
+    sat_2_gs_look_angles_fn = LookAngle(
+        sat_position,
+        strategy=BodyFrame(
+            attitude=LVLH(frame="gcrs"), attitude_offset=None, position_offset=None
+        ),
+    )
+    pass
+
+
 if __name__ == "__main__":
+    look_angles_test()
     test1()
     test2()
     coverage_test()
