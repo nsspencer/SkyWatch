@@ -11,6 +11,10 @@ from skywatch.coordinates import SkyPath
 
 
 def test1():
+    """
+    Calculate very specific access from a ground station to a satellite.
+    """
+
     t_start = Time("2024-02-01T00:00:00")
     t_end = Time("2024-02-02T00:00:00")
     low_fidelity_times = np.linspace(t_start, t_end, 1440)
@@ -63,12 +67,64 @@ def test1():
         .calculate_at(high_fidelity_times)
     )
     t1 = time.time()
-    print(f"Access calculation took: {t1-t0} seconds")
 
+    print(f"Access calculation took: {t1-t0} seconds")
     print(access_times.total_duration)
     print(access_times)
-    pass
+
+
+def test2():
+    """
+    calculate approximate lunar and eclipse times
+    """
+
+    t_start = Time("2024-01-01T00:00:00")
+    t_end = Time("2025-01-01T00:00:00")
+    times = np.linspace(t_start, t_end, 8640 * 2)
+
+    earth_pos = SkyPath.from_body(times, "earth")
+    sun_pos = SkyPath.from_body(times, "sun")
+    moon_pos = SkyPath.from_body(times, "moon")
+
+    t0 = time.time()
+    lunar_eclipse_times = (
+        Access(
+            LineOfSight(
+                sun_pos, moon_pos, earth_pos, when_obstructed=True, use_frame="icrs"
+            )
+        )
+        .use_precise_endpoints(True)
+        .calculate_at(times)
+    )
+    t1 = time.time()
+
+    print(f"Lunar eclipse access calculation took: {t1-t0} seconds")
+    print(lunar_eclipse_times.total_duration)
+    print(lunar_eclipse_times)
+
+    t0 = time.time()
+    solar_eclipse_times = (
+        Access(
+            LineOfSight(
+                earth_pos,
+                sun_pos,
+                moon_pos,
+                sma=1079.6 * 6 * u.km,  # use a body size ~ the size of the earth
+                smi=1079.6 * 6 * u.km,  # use a body size ~ the size of the earth
+                when_obstructed=True,
+                use_frame="icrs",
+            )
+        )
+        .use_precise_endpoints(True)
+        .calculate_at(times)
+    )
+    t1 = time.time()
+
+    print(f"Solar eclipse access calculation took: {t1-t0} seconds")
+    print(solar_eclipse_times.total_duration)
+    print(solar_eclipse_times)
 
 
 if __name__ == "__main__":
     test1()
+    test2()
