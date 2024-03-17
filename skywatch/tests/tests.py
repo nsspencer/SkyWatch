@@ -1,6 +1,12 @@
 import csv
 import os
 
+import astropy.units as u
+import numpy as np
+from astropy.time import Time
+
+from skywatch.coordinates import SkyPath
+
 LEO_EPHEM_CSV = os.path.join(os.path.dirname(__file__), "data", "leo_sat_ephem.csv")
 
 
@@ -32,3 +38,22 @@ def get_ephem_data(path: str = LEO_EPHEM_CSV) -> dict:
         data[heading] = column
 
     return data
+
+
+def get_ephem_as_skypath(path: str = LEO_EPHEM_CSV) -> SkyPath:
+    leo_csv = get_ephem_data(path)
+    leo_csv_times = Time(leo_csv["utc"])
+    leo_csv_position = (
+        np.array(
+            [leo_csv["x_eci_km"], leo_csv["y_eci_km"], leo_csv["z_eci_km"]]
+        ).astype(float)
+        * u.km
+    )
+    leo_csv_velocities = np.array(
+        [leo_csv["vx_eci_km_s"], leo_csv["vy_eci_km_s"], leo_csv["vz_eci_km_s"]]
+    ).astype(float) * (u.km / u.s)
+
+    sat_position = SkyPath.from_ECI(
+        leo_csv_times, *leo_csv_position, leo_csv_velocities
+    )
+    return sat_position
