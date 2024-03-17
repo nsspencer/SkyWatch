@@ -3,8 +3,9 @@ import numpy as np
 import pymap3d
 from astropy.time import Time
 
-from skypath.access.constraints._base_constraint import BaseAccessConstraint
-from skypath.coordinates import CoordinateInterpolator
+from skywatch.coordinates import SkyPath
+
+from ._base_constraint import BaseAccessConstraint
 
 
 class AzElRange(BaseAccessConstraint):
@@ -18,6 +19,8 @@ class AzElRange(BaseAccessConstraint):
     )
     def __init__(
         self,
+        observer: SkyPath,
+        target: SkyPath,
         min_az: u.deg = 0 * u.deg,
         max_az: u.deg = 360 * u.deg,
         min_el: u.deg = 0 * u.deg,
@@ -37,6 +40,8 @@ class AzElRange(BaseAccessConstraint):
             max_range (u.m, optional): maximum allowable range to target. Defaults to np.inf*u.m.
         """
         super().__init__()
+        self.observer = observer
+        self.target = target
         self.min_az = min_az
         self.max_az = max_az
         self.min_el = min_el
@@ -44,21 +49,11 @@ class AzElRange(BaseAccessConstraint):
         self.min_range = min_range
         self.max_range = max_range
 
-    def __call__(
-        self,
-        observer: CoordinateInterpolator,
-        target: CoordinateInterpolator,
-        time: Time,
-        bounds_check: bool = True,
-    ) -> np.ndarray:
+    def __call__(self, time: Time, *args, **kwargs) -> np.ndarray:
         """Constraints the times when the azimuth, elevation, and range values are satisfied from the observer to the target.
 
         Args:
-            observer (CoordinateInterpolator): _description_
-            target (CoordinateInterpolator): _description_
-            time (Time): _description_
-            bounds_check (bool, optional): Whether or not to check the provided times are within the bounds
-            of the observer and target CoordinateInterpolator.
+            time (Time): time to check for azimuth, elevation and range constraints
 
         Returns:
             np.ndarray: boolean array representing times when this constraint succeeds vs. fails.
@@ -67,11 +62,11 @@ class AzElRange(BaseAccessConstraint):
         # NOTE: Using pymap3d is tremendously faster than having astropy calculate the AltAz frame from the observer to the target,
         # however there are cases for distant objects that this loses accuracy.
         az, el, rng = pymap3d.ecef2aer(
-            *target.state_at(time, "itrs", bounds_check=bounds_check)
+            *self.target.state_at(time, "itrs", bounds_check=True)
             .cartesian.xyz.to(u.m)
             .value,
             *pymap3d.ecef2geodetic(
-                *observer.state_at(time, "itrs", bounds_check=bounds_check)
+                *self.observer.state_at(time, "itrs", bounds_check=True)
                 .cartesian.xyz.to(u.m)
                 .value
             )

@@ -1,106 +1,121 @@
+from typing import List
+
 import astropy.units as u
 import numpy as np
 import portion as P
-
-from typing import List
 from astropy.time import Time
-from skypath.coordinates.coordinate_interpolator import CoordinateInterpolator
+
 from skypath.access.constraints._base_constraint import BaseAccessConstraint
+from skypath.coordinates import CoordinateInterpolator
 
-
-        
 
 class AccessInterval(P.Interval):
     def __init__(self, *intervals):
         super().__init__(*intervals)
-    
+
     @property
     def total_duration(self) -> u.s:
         duration = 0
         for interval in self:
-            duration += (Time(interval.upper) - Time(interval.lower)).datetime.total_seconds()
+            duration += (
+                Time(interval.upper) - Time(interval.lower)
+            ).datetime.total_seconds()
         return duration * u.s
 
 
+@u.quantity_input(precision=u.s)  # seconds
+def get_access(
+    observer: CoordinateInterpolator,
+    target: CoordinateInterpolator,
+    time: Time,
+    constraints: List[BaseAccessConstraint] = [],
+    find_precise_times: bool = True,
+    precision: u.s = 1 * u.s,
+) -> AccessInterval:
 
-@u.quantity_input(precision = u.s) # seconds
-def get_access(observer: CoordinateInterpolator,
-                target: CoordinateInterpolator,
-                time: Time,
-                constraints: List[BaseAccessConstraint] = [],
-                find_precise_times: bool = True,
-                precision: u.s = 1 * u.s) -> AccessInterval:
-    
     if not isinstance(time, Time):
         time = Time(time)
-    
+
     # scale the precision to reflect the it in terms of seconds
     precision = (1 * u.s) / precision
-    
+
     # first pass check of access
     constrined_times = [np.array([True] * time.size)]
     for constraint in constraints:
         constrined_times.append(constraint(observer, target, time, bounds_check=True))
-    
+
     # get all the windows from the first pass
     valid_time = np.all(constrined_times, axis=0)
     valid_ranges, access_times = _access_times(valid_time, time)
-    
+
     # if no access or if not using precise timing, set the first pass as the final access
     if not find_precise_times or len(constraints) == 0:
         final_access_times = access_times
-        
+
     else:
         # calculate access at the precise time scale around the start and stop times of each window
         final_access_times = []
         for window_range, access_time in zip(valid_ranges, access_times):
             start_index = window_range[0]
             before_start_index = max(window_range[0] - 1, 0)
-            
+
             if start_index == before_start_index:
-                exact_start_time = time[start_index] # nothing before the start time to interpolate to
+                exact_start_time = time[
+                    start_index
+                ]  # nothing before the start time to interpolate to
             else:
                 # calculate number of steps between times to get desired precision
                 t1 = time[start_index]
                 t0 = time[before_start_index]
-                num_steps = max(int(((t1 - t0).datetime.total_seconds()) * precision.value), 2)                    
+                num_steps = max(
+                    int(((t1 - t0).datetime.total_seconds()) * precision.value), 2
+                )
                 new_start_times = np.linspace(t0, t1, num_steps)
-                
+
                 # find the exact start time for this window
                 constrained_times = [np.array([True] * len(new_start_times))]
                 for constraint in constraints:
-                    constrained_times.append(constraint(observer, target, new_start_times, bounds_check=False))
+                    constrained_times.append(
+                        constraint(
+                            observer, target, new_start_times, bounds_check=False
+                        )
+                    )
                 exact_start_time = new_start_times[np.all(constrained_times, axis=0)][0]
 
             # calculate the exact end time
-            end_index = window_range[1]-1
-            after_end_index = min(window_range[1], time.size-1)
-            
+            end_index = window_range[1] - 1
+            after_end_index = min(window_range[1], time.size - 1)
+
             if end_index == after_end_index:
-                exact_end_time = time[end_index] # nothing after the end time to interpolate to
+                exact_end_time = time[
+                    end_index
+                ]  # nothing after the end time to interpolate to
             else:
                 # calculate number of steps between times to get desired precision
                 t0 = time[end_index]
                 t1 = time[after_end_index]
-                num_steps = max(int(((t1 - t0).datetime.total_seconds()) * precision.value), 2)
+                num_steps = max(
+                    int(((t1 - t0).datetime.total_seconds()) * precision.value), 2
+                )
                 new_end_times = np.linspace(t0, t1, num_steps)
-                
+
                 # find the exact end time for this window
                 constrained_times = [np.array([True] * len(new_end_times))]
                 for constraint in constraints:
-                    constrained_times.append(constraint(observer, target, new_end_times, bounds_check=False))
+                    constrained_times.append(
+                        constraint(observer, target, new_end_times, bounds_check=False)
+                    )
                 exact_end_time = new_end_times[np.all(constrained_times, axis=0)][-1]
-            
+
             final_access_times.append((exact_start_time, exact_end_time))
-    
+
     # compute the access windows using portion's intervals
     access = AccessInterval()
     for access_time in final_access_times:
         t_start, t_end = access_time[0], access_time[-1]
         access = access.union(P.closed(t_start, t_end))
-    
-    return access
 
+    return access
 
 
 def _get_true_ranges(bool_array: np.ndarray) -> List[tuple]:
@@ -122,21 +137,20 @@ def _get_true_ranges(bool_array: np.ndarray) -> List[tuple]:
     ranges = [tuple(r) for r in ranges]
 
     return ranges
-    
+
 
 def _access_times(constrained_times: np.ndarray, time: Time) -> tuple:
     if not np.any(constrained_times):
-        return [], [] # no access
-    
+        return [], []  # no access
+
     window_ranges = _get_true_ranges(constrained_times)
     valid_ranges = []
     access_times = []
     for range in window_ranges:
-        new_time = time[range[0]:range[1]]
+        new_time = time[range[0] : range[1]]
         if len(new_time) == 1:
             new_time = np.array([time[range[0]]] * 2)
-            # continue # need at least 2 times for access to be considered
         valid_ranges.append(range)
         access_times.append(new_time)
-        
+
     return valid_ranges, access_times

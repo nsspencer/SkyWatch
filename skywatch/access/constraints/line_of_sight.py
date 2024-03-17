@@ -5,51 +5,53 @@ import numpy as np
 from astropy.coordinates import BaseCoordinateFrame
 from astropy.time import Time
 
-from skypath.access.constraints._base_constraint import BaseAccessConstraint
-from skypath.coordinates import CoordinateInterpolator
-from skypath.skypath import SkyPath
+from skywatch.coordinates import SkyPath
+
+from ._base_constraint import BaseAccessConstraint
 
 
 class LineOfSight(BaseAccessConstraint):
     def __init__(
         self,
-        body: Union[SkyPath, CoordinateInterpolator, BaseCoordinateFrame],
+        observer: SkyPath,
+        target: SkyPath,
+        obstructor: Union[SkyPath, BaseCoordinateFrame],
         sma=6378.137 * u.km,
         smi=6356.7523 * u.km,
         use_frame: str = "itrs",
+        when_not_obstructed: bool = True,
     ) -> None:
         """
         Line of sight constraint which checks that the line of sight between two positions
         is not blocked by some body with a given semi major and semi minor access.
 
         Args:
-            body (Union[SkyPath, CoordinateInterpolator, BaseCoordinateFrame]): coordinate of the body which potentially blocks line of sight.
+            obstructor (Union[SkyPath, BaseCoordinateFrame]): coordinate of the body which potentially blocks line of sight.
             sma (Quantity, optional): semi major axis of the body. Defaults to 6378.137*u.km.
             smi (Quantity, optional): semi minor axis of the body. Defaults to 6356.7523*u.km.
             use_frame (str, optional): coordinate frame name to calculate access in. Defaults to 'itrs'.
         """
         super().__init__()
+        assert (
+            observer is not target
+        ), "Observer cannot be the same object as the target"
+        self.observer = observer
+        self.target = target
+        self.when_not_obstructed = when_not_obstructed
+
         self.sma = sma
         self.smi = smi
         self.use_frame = use_frame
-        if isinstance(body, SkyPath):
-            self.body = body.coordinate_frame
-        elif isinstance(body, CoordinateInterpolator):
-            self.body = body
-        elif isinstance(body, BaseCoordinateFrame):
-            self.body = CoordinateInterpolator(body)
+        if isinstance(obstructor, SkyPath):
+            self.obstructor = obstructor
+        elif isinstance(obstructor, BaseCoordinateFrame):
+            self.obstructor = SkyPath(obstructor)
         else:
             raise TypeError(
                 "Body must be a SkyPath, CoordinateInterpolator, or BaseCoordinateFrame."
             )
 
-    def __call__(
-        self,
-        observer: CoordinateInterpolator,
-        target: CoordinateInterpolator,
-        time: Time,
-        bounds_check: bool = True,
-    ) -> np.ndarray:
+    def __call__(self, time: Time, *args, **kwargs) -> np.ndarray:
         """
         Returns the subset of times when the earth does not obstruct the two Kinematics.
 
@@ -63,25 +65,30 @@ class LineOfSight(BaseAccessConstraint):
         Returns:
             Time: boolean array of times when this SkyPath has line of sight access to the target.
         """
-        assert self != target, "Cannot get line of sight to self"
-        pos1 = observer.state_at(
-            time, self.use_frame, bounds_check=bounds_check
+        pos1 = self.observer.state_at(
+            time, self.use_frame, bounds_check=True
         ).cartesian.xyz
-        pos2 = target.state_at(
-            time, self.use_frame, bounds_check=bounds_check
+        pos2 = self.target.state_at(
+            time, self.use_frame, bounds_check=True
         ).cartesian.xyz
-        body_pos = self.body.state_at(
-            time, self.use_frame, bounds_check=bounds_check
+        obstructor_pos = self.obstructor.state_at(
+            time, self.use_frame, bounds_check=True
         ).cartesian.xyz
-        return self._line_of_sight_body(pos1.T, pos2.T, body_pos.T, self.sma, self.smi)
+
+        los_times = self._line_of_sight_body(
+            pos1.T, pos2.T, obstructor_pos.T, self.sma, self.smi
+        )
+        if self.when_not_obstructed:
+            return ~los_times
+        return los_times
 
     @staticmethod
     def _line_of_sight_body(
         pos1: np.ndarray,
         pos2: np.ndarray,
         pos_body: np.ndarray,
-        sma=6378.137 * u.km,
-        smi=6356.7523 * u.km,
+        sma: u.km,
+        smi: u.km,
     ) -> np.ndarray:
         """
         Determines whether a planetary body intersects the line of sight between two vectors.
@@ -144,5 +151,5 @@ class LineOfSight(BaseAccessConstraint):
             ),
         )
 
-        # Return the times that the body does not intersect the line of sight vector
-        return ~intersections
+        # Return the times that the body intersects the line of sight vector
+        return intersections

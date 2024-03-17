@@ -1,2 +1,2 @@
 from . import constraints
-from .access_funcs import get_access, AccessInterval
+from .access_funcs import AccessInterval, get_access

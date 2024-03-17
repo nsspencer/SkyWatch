@@ -1,8 +1,9 @@
-from skypath.coordinates.coordinate_interpolator import CoordinateInterpolator
+from abc import ABC, abstractclassmethod
 
 from astropy.time import Time
-from abc import ABC, abstractclassmethod
 from scipy.spatial.transform.rotation import Rotation
+
+from skypath.coordinates import CoordinateInterpolator
 
 
 class BaseAttitudeStrategy(ABC):

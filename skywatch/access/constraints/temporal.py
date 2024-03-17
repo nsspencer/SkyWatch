@@ -1,8 +1,7 @@
 import numpy as np
 from astropy.time import Time
 
-from skypath.access.constraints._base_constraint import BaseAccessConstraint
-from skypath.coordinates import CoordinateInterpolator
+from ._base_constraint import BaseAccessConstraint
 
 
 class Temporal(BaseAccessConstraint):
@@ -25,13 +24,7 @@ class Temporal(BaseAccessConstraint):
         self.to_time = to_time
         self.inner = inner
 
-    def __call__(
-        self,
-        observer: CoordinateInterpolator,
-        target: CoordinateInterpolator,
-        time: Time,
-        bounds_check: bool = True,
-    ) -> np.ndarray:
+    def __call__(self, time: Time, *args, **kwargs) -> np.ndarray:
         """
         Compute times that pass this constraint.
 

@@ -7,7 +7,7 @@ from scipy.interpolate import CubicHermiteSpline, CubicSpline
 from .creation import SkyPathCreationMixin
 
 
-class CoordinateInterpolator(SkyCoord, SkyPathCreationMixin):
+class SkyPath(SkyCoord, SkyPathCreationMixin):
 
     class SavedFrame:
         """
@@ -27,7 +27,7 @@ class CoordinateInterpolator(SkyCoord, SkyPathCreationMixin):
         def __repr__(self) -> str:
             return self.name
 
-    def _copy_from(self, other: "CoordinateInterpolator"):
+    def _copy_from(self, other: "SkyPath"):
         self._interpolation_allowed = other._interpolation_allowed
         self._min_original_time = other._min_original_time
         self._max_original_time = other._max_original_time
@@ -39,7 +39,7 @@ class CoordinateInterpolator(SkyCoord, SkyPathCreationMixin):
         super().__init__(*args, **kwargs)
 
         # call copy constructor
-        if len(args) != 0 and isinstance(args[0], CoordinateInterpolator):
+        if len(args) != 0 and isinstance(args[0], SkyPath):
             self._copy_from(args[0])
 
         # construct new instance
@@ -58,7 +58,7 @@ class CoordinateInterpolator(SkyCoord, SkyPathCreationMixin):
 
     def state_at(
         self, time: Time, frame: str, copy: bool = True, bounds_check: bool = True
-    ) -> "CoordinateInterpolator":
+    ) -> "SkyPath":
         """
         Interpolates an Astropy.BaseCoordinateFrame object at the given time(s) and saves the
         interpolation spline for later use. Therefore, you only pay the computation penalty
@@ -72,10 +72,10 @@ class CoordinateInterpolator(SkyCoord, SkyPathCreationMixin):
             frame (str): BaseCoordinateFrame name to get the results in
 
         Returns:
-            CoordinateInterpolator: CoordinateInterpolator representing an Astropy SkyCoord in the coordinate system you requested.
+            SkyPath: SkyPath representing an Astropy SkyCoord in the coordinate system you requested.
         """
         if not self._interpolation_allowed:
-            return CoordinateInterpolator(
+            return SkyPath(
                 SkyCoord(
                     self.frame.cartesian, obstime=time, frame=self.frame.name
                 ).transform_to(frame)
@@ -110,7 +110,7 @@ class CoordinateInterpolator(SkyCoord, SkyPathCreationMixin):
                 _velocity = [None, None, None]
 
             # return a new copy of this object in the requested frame
-            new_coord = CoordinateInterpolator(
+            new_coord = SkyPath(
                 x=_position[0],
                 y=_position[1],
                 z=_position[2],
@@ -169,7 +169,7 @@ class CoordinateInterpolator(SkyCoord, SkyPathCreationMixin):
         self._saved_frames.append(new_frame)
 
         # construct the new frame from the interpolated coordinates as a copy of this object
-        new_coord = CoordinateInterpolator(
+        new_coord = SkyPath(
             x=interpolated_position[0],
             y=interpolated_position[1],
             z=interpolated_position[2],

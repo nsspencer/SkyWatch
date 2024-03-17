@@ -3,7 +3,7 @@ from astropy.coordinates import BaseCoordinateFrame, EarthLocation, SkyCoord, ge
 from astropy.time import Time
 
 
-class KinematicCreationMixin:
+class SkyPathCreationMixin:
     def __init__(self, *_, **__):  # HACK stub to make mypy happy
         ...
 
@@ -78,7 +78,6 @@ class KinematicCreationMixin:
 
     @classmethod
     def from_body(cls, time: Time, body: str = "earth", *args, **kwargs):
-        # assert time.size >= 2, "Kinematics required 2 or more time values for interpolation."
         return cls(get_body(body, time, *args, **kwargs))
 
     @classmethod
