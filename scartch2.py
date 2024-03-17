@@ -14,7 +14,7 @@ def test1():
     t_start = Time("2024-02-01T00:00:00")
     t_end = Time("2024-02-02T00:00:00")
     low_fidelity_times = np.linspace(t_start, t_end, 1440)
-    high_fidelity_times = np.linspace(t_start, t_end, 8640)
+    high_fidelity_times = np.linspace(t_start, t_end, 86400)
 
     earth_pos = SkyPath.from_body(low_fidelity_times, "earth")
     sun_pos = SkyPath.from_body(low_fidelity_times, "sun")
@@ -59,7 +59,8 @@ def test1():
         )
         .use_precise_endpoints(True)
         .set_precision(0.001 * u.s)
-        .set_min_duration(60 * u.s)(high_fidelity_times)
+        .set_min_duration(60 * u.s)
+        .calculate_at(high_fidelity_times)
     )
     t1 = time.time()
     print(f"Access calculation took: {t1-t0} seconds")

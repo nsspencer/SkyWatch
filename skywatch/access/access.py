@@ -59,6 +59,9 @@ class Access:
         self.constraints.append(constraint)
         return self
 
+    def calculate_at(self, time: Time, *args, **kwargs) -> AccessInterval:
+        return self.__call__(time, *args, **kwargs)
+
     def __call__(self, time: Time, *args, **kwargs) -> AccessInterval:
         if not isinstance(time, Time):
             time = Time(time)
