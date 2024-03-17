@@ -1,3 +1,4 @@
+import astropy.units as u
 import numpy as np
 from astropy.time import Time
 from scipy.spatial.transform.rotation import Rotation
@@ -13,8 +14,8 @@ class LVLH(BaseAttitudeStrategy):
 
     def __call__(self, time: Time) -> Rotation:
         state = self.observer.state_at(time, frame=self.frame)
-        pos = state.cartesian.xyz
-        vel = state.cartesian.differentials["s"].d_xyz
+        pos = state.cartesian.xyz.to(u.m).value
+        vel = state.cartesian.differentials["s"].d_xyz.to(u.m / u.s).value
         return Rotation.from_matrix(LVLH.calculate_reference_frame(*pos, *vel))
 
     @staticmethod

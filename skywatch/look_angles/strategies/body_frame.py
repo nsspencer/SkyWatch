@@ -23,22 +23,26 @@ class BodyFrame(BaseLookAngleStrategy):
         self.attitude_offset = attitude_offset
 
     def __call__(self, time: Time, target: SkyPath, *args, **kwargs) -> AzElRangeTime:
-        observer_position = self.observer.state_at(
-            time, self.attitude_strategy.frame
-        ).cartesian.xyz
-        target_position = target.state_at(
-            time, self.attitude_strategy.frame
-        ).cartesian.xyz
+        observer_position = (
+            self.observer.state_at(time, self.attitude_strategy.frame)
+            .cartesian.xyz.to(u.m)
+            .value
+        )
+        target_position = (
+            target.state_at(time, self.attitude_strategy.frame)
+            .cartesian.xyz.to(u.m)
+            .value
+        )
 
         observer_attitude = self.attitude_strategy(time)
         if self.attitude_offset is not None:
-            observer_attitude *= self.attitude_offset
+            observer_attitude = observer_attitude * self.attitude_offset
 
         az, el, rng = BodyFrame.get_look_angles_to(
-            observer_position, target_position, observer_attitude
+            observer_position.T, target_position.T, observer_attitude
         )
 
-        return AzElRangeTime(az, el, rng, time)
+        return AzElRangeTime(az * u.deg, el * u.deg, rng * u.m, time)
 
     @staticmethod
     def get_look_angles_to(
@@ -85,13 +89,13 @@ class BodyFrame(BaseLookAngleStrategy):
 
         # calculate the azimuth from the x axis
         azimuth = funcs._counterclockwise_angle_between(
-            x_axis, observer_to_target_projected[:, :2].value
+            x_axis, observer_to_target_projected[:, :2]
         )
 
         # calculate the elevation angle
         elevation = funcs._elevation_between(observer_to_target, component_along_z)
 
         # calculate the range
-        rng = np.sqrt(np.sum(observer_to_target**2, axis=1)).to(u.m)
+        rng = np.linalg.norm(observer_to_target, axis=1)
 
         return azimuth, elevation, rng

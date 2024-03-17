@@ -122,7 +122,7 @@ def _clockwise_angle_between(v1: np.ndarray, v2: np.ndarray) -> np.ndarray:
     angle_2 = np.arctan2(v2[:, 1], v2[:, 0]) * 180 / np.pi
     angle = angle_2 - angle_1
     angle = np.where(angle < 0, angle + 360, angle)
-    return angle * u.deg
+    return angle
 
 
 def _counterclockwise_angle_between(v1: np.ndarray, v2: np.ndarray) -> np.ndarray:
@@ -139,4 +139,4 @@ def _counterclockwise_angle_between(v1: np.ndarray, v2: np.ndarray) -> np.ndarra
     angle_2 = np.arctan2(v2[:, 1], v2[:, 0]) * 180 / np.pi
     angle = angle_1 - angle_2  # Swapped the order here to make counterclockwise
     angle = np.where(angle < 0, angle + 360, angle)
-    return angle * u.deg
+    return angle

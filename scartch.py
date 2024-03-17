@@ -4,10 +4,13 @@ import time
 import astropy.units as u
 import numpy as np
 from astropy.time import Time, TimeDelta
+from scipy.spatial.transform.rotation import Rotation
 
 from skywatch.access import Access
 from skywatch.access.constraints import AzElRange, LineOfSight, Temporal
+from skywatch.attitude import LVLH
 from skywatch.coordinates import SkyPath
+from skywatch.look_angles import LookAngles
 from skywatch.tests.tests import get_ephem_as_skypath
 from skywatch.utils.coverage import GeoFilter, calculate_coverage
 
@@ -140,14 +143,18 @@ def look_angles_test():
         times[0], 34.5 * u.deg, -77.0 * u.deg, 0 * u.m
     )
 
-    gs_to_sat_look_angles_fn = LookAngle(ground_station_pos, strategy=LocalTangentENU())
-    gs_to_sat_look_angles = gs_to_sat_look_angles_fn(times, sat_position)
+    gs_look_angles_fn = LookAngles.from_local_enu(ground_station_pos, False)
+    gs_look_angles_fn_astropy = LookAngles.from_local_enu(ground_station_pos, True)
+    gs_to_sat_look_angles = gs_look_angles_fn(times, sat_position)
+    gs_to_sat_look_angles_astropy = gs_look_angles_fn_astropy(times, sat_position)
 
-    sat_2_gs_look_angles_fn = LookAngle(
-        sat_position,
-        strategy=BodyFrame(
-            attitude=LVLH(frame="gcrs"), attitude_offset=None, position_offset=None
-        ),
+    sat_look_angles_fn = LookAngles.from_body_frame(sat_position, LVLH(sat_position))
+    sat_look_angles_fn_offset = LookAngles.from_body_frame(
+        sat_position, LVLH(sat_position), Rotation.from_euler("z", -45, degrees=True)
+    )
+    sat_to_ground_station_look_angles = sat_look_angles_fn(times, ground_station_pos)
+    sat_to_ground_station_look_angles_offset = sat_look_angles_fn_offset(
+        times, ground_station_pos
     )
     pass
 
