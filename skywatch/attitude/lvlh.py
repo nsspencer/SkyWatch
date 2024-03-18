@@ -15,7 +15,14 @@ class LVLH(BaseAttitudeStrategy):
     def __call__(self, time: Time) -> Rotation:
         state = self.observer.state_at(time, frame=self.frame)
         pos = state.cartesian.xyz.to(u.m).value
-        vel = state.cartesian.differentials["s"].d_xyz.to(u.m / u.s).value
+        differentials = state.cartesian.differentials.get("s", None)
+        if differentials is None:
+            raise AttributeError(
+                "Observer has no velocity component. Velocity is needed to calculate the LVLH frame."
+            )
+        vel = differentials.d_xyz.to(u.m / u.s).value
+
+        # Now you have the
         return Rotation.from_matrix(LVLH.calculate_reference_frame(*pos, *vel))
 
     @staticmethod

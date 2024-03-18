@@ -1,5 +1,6 @@
 import datetime
 import time
+import unittest
 
 import astropy.units as u
 import numpy as np
@@ -15,152 +16,169 @@ from skywatch.tests.tests import get_ephem_as_skypath
 from skywatch.utils.coverage import GeoFilter, calculate_coverage
 
 
-def test1():
-    """
-    Calculate very specific access from a ground station to a satellite.
-    """
+class SmokeTests(unittest.TestCase):
 
-    t_start = Time("2024-02-01T00:00:00")
-    t_end = Time("2024-02-02T00:00:00")
-    low_fidelity_times = np.linspace(t_start, t_end, 1440)
-    high_fidelity_times = np.linspace(t_start, t_end, 86400)
+    def test_access(self):
+        """
+        Calculate very specific access from a ground station to a satellite.
+        """
 
-    earth_pos = SkyPath.from_body(low_fidelity_times, "earth")
-    sun_pos = SkyPath.from_body(low_fidelity_times, "sun")
-    moon_pos = SkyPath.from_body(low_fidelity_times, "moon")
+        t_start = Time("2024-02-01T00:00:00")
+        t_end = Time("2024-02-02T00:00:00")
+        low_fidelity_times = np.linspace(t_start, t_end, 1440)
+        high_fidelity_times = np.linspace(t_start, t_end, 86400)
 
-    ground_station_pos = SkyPath.from_geodetic(
-        low_fidelity_times[0], 34.5 * u.deg, -77.0 * u.deg, 0 * u.m
-    )
+        earth_pos = SkyPath.from_body(low_fidelity_times, "earth")
+        sun_pos = SkyPath.from_body(low_fidelity_times, "sun")
+        moon_pos = SkyPath.from_body(low_fidelity_times, "moon")
 
-    sat_position = get_ephem_as_skypath()
-
-    t0 = time.time()
-    access_times = (
-        Access(
-            LineOfSight(ground_station_pos, sat_position, earth_pos),
-            AzElRange(ground_station_pos, sun_pos, min_el=0 * u.deg, max_el=5 * u.deg),
-            LineOfSight(sat_position, sun_pos, earth_pos),
-            Temporal(
-                min_time=Time("2024-02-01T22:15:00"),
-                max_time=Time("2024-02-01T22:17:00"),
-            ),
-            LineOfSight(moon_pos, sun_pos, earth_pos),
+        ground_station_pos = SkyPath.from_geodetic(
+            low_fidelity_times[0], 34.5 * u.deg, -77.0 * u.deg, 0 * u.m
         )
-        .use_precise_endpoints(True)
-        .set_precision(0.001 * u.s)
-        .set_min_duration(60 * u.s)
-        .calculate_at(high_fidelity_times)
-    )
-    t1 = time.time()
 
-    print(f"Access calculation took: {t1-t0} seconds")
-    print(access_times.total_duration)
-    print(access_times)
+        sat_position = get_ephem_as_skypath()
 
-
-def test2():
-    """
-    calculate approximate lunar and solar eclipse times until 2025
-    """
-
-    t_start = Time("2024-01-01T00:00:00")
-    t_end = Time("2025-01-01T00:00:00")
-    dt = TimeDelta(datetime.timedelta(days=1), format="datetime")
-    num_steps = int((t_end - t_start) / dt)
-    times = np.linspace(t_start, t_end, num_steps)
-
-    earth_pos = SkyPath.from_body(times, "earth")
-    sun_pos = SkyPath.from_body(times, "sun")
-    moon_pos = SkyPath.from_body(times, "moon")
-
-    t0 = time.time()
-    lunar_eclipse_times = (
-        Access(
-            LineOfSight(
-                sun_pos, moon_pos, earth_pos, when_obstructed=True, use_frame="icrs"
+        t0 = time.time()
+        access_times = (
+            Access(
+                LineOfSight(ground_station_pos, sat_position, earth_pos),
+                AzElRange(
+                    ground_station_pos, sun_pos, min_el=0 * u.deg, max_el=5 * u.deg
+                ),
+                LineOfSight(sat_position, sun_pos, earth_pos),
+                Temporal(
+                    min_time=Time("2024-02-01T22:15:00"),
+                    max_time=Time("2024-02-01T22:17:00"),
+                ),
+                LineOfSight(moon_pos, sun_pos, earth_pos),
             )
+            .use_precise_endpoints(True)
+            .set_precision(0.001 * u.s)
+            .set_min_duration(60 * u.s)
+            .calculate_at(high_fidelity_times)
         )
-        .use_precise_endpoints(True)
-        .set_precision(1 * u.s)
-        .calculate_at(times)
-    )
-    t1 = time.time()
+        t1 = time.time()
 
-    print(f"Lunar eclipse access calculation took: {t1-t0} seconds")
-    print(lunar_eclipse_times.total_duration)
-    print(lunar_eclipse_times)
+        print(f"Access calculation took: {t1-t0} seconds")
+        print(access_times.total_duration)
+        print(access_times)
 
-    t0 = time.time()
-    solar_eclipse_times = (
-        Access(
-            LineOfSight(
-                earth_pos,
-                sun_pos,
-                moon_pos,
-                sma=1079.6 * 6 * u.km,  # use a body size ~= earth
-                smi=1079.6 * 6 * u.km,  # use a body size ~= earth
-                when_obstructed=True,
-                use_frame="icrs",
+    def test_eclipse_access(self):
+        """
+        calculate approximate lunar and solar eclipse times until 2025
+        """
+
+        t_start = Time("2024-01-01T00:00:00")
+        t_end = Time("2025-01-01T00:00:00")
+        dt = TimeDelta(datetime.timedelta(days=1), format="datetime")
+        num_steps = int((t_end - t_start) / dt)
+        times = np.linspace(t_start, t_end, num_steps)
+
+        earth_pos = SkyPath.from_body(times, "earth")
+        sun_pos = SkyPath.from_body(times, "sun")
+        moon_pos = SkyPath.from_body(times, "moon")
+
+        t0 = time.time()
+        lunar_eclipse_times = (
+            Access(
+                LineOfSight(
+                    sun_pos, moon_pos, earth_pos, when_obstructed=True, use_frame="icrs"
+                )
             )
+            .use_precise_endpoints(True)
+            .set_precision(1 * u.s)
+            .calculate_at(times)
         )
-        .use_precise_endpoints(True)
-        .set_precision(1 * u.s)
-        .calculate_at(times)
-    )
-    t1 = time.time()
+        t1 = time.time()
 
-    print(f"Solar eclipse access calculation took: {t1-t0} seconds")
-    print(solar_eclipse_times.total_duration)
-    print(solar_eclipse_times)
+        print(f"Lunar eclipse access calculation took: {t1-t0} seconds")
+        print(lunar_eclipse_times.total_duration)
+        print(lunar_eclipse_times)
 
+        t0 = time.time()
+        solar_eclipse_times = (
+            Access(
+                LineOfSight(
+                    earth_pos,
+                    sun_pos,
+                    moon_pos,
+                    sma=1079.6 * 6 * u.km,  # use a body size ~= earth
+                    smi=1079.6 * 6 * u.km,  # use a body size ~= earth
+                    when_obstructed=True,
+                    use_frame="icrs",
+                )
+            )
+            .use_precise_endpoints(True)
+            .set_precision(1 * u.s)
+            .calculate_at(times)
+        )
+        t1 = time.time()
 
-def coverage_test():
-    t_start = Time("2024-02-01T00:00:00")
-    t_end = Time("2024-02-02T00:00:00")
-    times = np.linspace(t_start, t_end, 8640)
+        print(f"Solar eclipse access calculation took: {t1-t0} seconds")
+        print(solar_eclipse_times.total_duration)
+        print(solar_eclipse_times)
 
-    sat_position = get_ephem_as_skypath()
+    def test_coverage(self):
+        t_start = Time("2024-02-01T00:00:00")
+        t_end = Time("2024-02-02T00:00:00")
+        times = np.linspace(t_start, t_end, 8640)
 
-    worldwide_coverage_result = calculate_coverage([sat_position], times, 1000)
-    print(f"Worldwide min revisit time: {worldwide_coverage_result.min_revisit_time}")
-    print(f"Worldwide max revisit time: {worldwide_coverage_result.max_revisit_time}")
+        sat_position = get_ephem_as_skypath()
 
-    at_equator_coverage = worldwide_coverage_result.filter(
-        GeoFilter(min_latitude=-1 * u.deg, max_latitude=1 * u.deg)
-    )
-    print(f"Equatorial min revisit time: {at_equator_coverage.min_revisit_time}")
-    print(f"Equatorial max revisit time: {at_equator_coverage.max_revisit_time}")
+        worldwide_coverage_result = calculate_coverage([sat_position], times, 300)
+        print(
+            f"Worldwide min revisit time: {worldwide_coverage_result.min_revisit_time}"
+        )
+        print(
+            f"Worldwide max revisit time: {worldwide_coverage_result.max_revisit_time}"
+        )
 
+        at_equator_coverage = worldwide_coverage_result.filter(
+            GeoFilter(min_latitude=-1 * u.deg, max_latitude=1 * u.deg)
+        )
+        print(f"Equatorial min revisit time: {at_equator_coverage.min_revisit_time}")
+        print(f"Equatorial max revisit time: {at_equator_coverage.max_revisit_time}")
 
-def look_angles_test():
-    t_start = Time("2024-02-01T00:00:00")
-    t_end = Time("2024-02-02T00:00:00")
-    times = np.linspace(t_start, t_end, 8640)
+    def test_look_angles(self):
+        t_start = Time("2024-02-01T00:00:00")
+        t_end = Time("2024-02-02T00:00:00")
+        times = np.linspace(t_start, t_end, 8640)
 
-    sat_position = get_ephem_as_skypath()
-    ground_station_pos = SkyPath.from_geodetic(
-        times[0], 34.5 * u.deg, -77.0 * u.deg, 0 * u.m
-    )
+        sat_position = get_ephem_as_skypath()
+        ground_station_pos = SkyPath.from_geodetic(
+            times, 34.5 * u.deg, -77.0 * u.deg, 0 * u.m
+        )
 
-    gs_look_angles_fn = LookAngles.from_local_enu(ground_station_pos, False)
-    gs_look_angles_fn_astropy = LookAngles.from_local_enu(ground_station_pos, True)
-    gs_to_sat_look_angles = gs_look_angles_fn(times, sat_position)
-    gs_to_sat_look_angles_astropy = gs_look_angles_fn_astropy(times, sat_position)
+        gs_look_angles_fn = LookAngles.from_local_enu(ground_station_pos, False)
+        gs_look_angles_fn_astropy = LookAngles.from_local_enu(ground_station_pos, True)
+        gs_to_sat_look_angles = gs_look_angles_fn(times, sat_position)
+        gs_to_sat_look_angles_astropy = gs_look_angles_fn_astropy(times, sat_position)
 
-    sat_look_angles_fn = LookAngles.from_body_frame(sat_position, LVLH(sat_position))
-    sat_look_angles_fn_offset = LookAngles.from_body_frame(
-        sat_position, LVLH(sat_position), Rotation.from_euler("z", -45, degrees=True)
-    )
-    sat_to_ground_station_look_angles = sat_look_angles_fn(times, ground_station_pos)
-    sat_to_ground_station_look_angles_offset = sat_look_angles_fn_offset(
-        times, ground_station_pos
-    )
-    pass
+        sat_look_angles_fn = LookAngles.from_body_frame(
+            sat_position, LVLH(sat_position)
+        )
+        sat_look_angles_fn_offset = LookAngles.from_body_frame(
+            sat_position,
+            LVLH(sat_position),
+            Rotation.from_euler("z", -45, degrees=True),
+        )
+        sat_to_ground_station_look_angles = sat_look_angles_fn(
+            times, ground_station_pos
+        )
+        sat_to_ground_station_look_angles_offset = sat_look_angles_fn_offset(
+            times, ground_station_pos
+        )
+
+        gs_body_frame = LookAngles.from_body_frame(
+            ground_station_pos, LVLH(ground_station_pos, "itrs")
+        )
+
+        try:
+            gs_body_to_sat = gs_body_frame(times, sat_position)
+            self.assertTrue(False)  # fail
+        except AttributeError:
+            self.assertTrue(True)  # pass because static position has no velocity
 
 
 if __name__ == "__main__":
-    look_angles_test()
-    test1()
-    test2()
-    coverage_test()
+    unittest.main()

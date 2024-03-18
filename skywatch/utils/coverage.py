@@ -238,6 +238,12 @@ class CoverageResult:
         # return remaining coverage results
         return new_coverage
 
+    def __iter__(self):
+        return iter(self.coverage_points)
+
+    def __len__(self) -> int:
+        return len(self.coverage_points)
+
 
 def calculate_coverage(
     satellites: List[SkyPath],
@@ -245,6 +251,7 @@ def calculate_coverage(
     num_earth_points: int = 1000,
     min_elevation: u.deg = 0 * u.deg,
     precision: u.s = 0.1 * u.s,
+    use_precise_endpoints: bool = True,
     min_duration: u.s = 0.0 * u.s,
     point_generator_fn=fibonacci_latitude_longitude,
 ) -> CoverageResult:
@@ -268,7 +275,7 @@ def calculate_coverage(
                 Access(
                     AzElRange(point, satellite, min_el=min_elevation),
                 )
-                .use_precise_endpoints(True)
+                .use_precise_endpoints(use_precise_endpoints)
                 .set_precision(precision)
                 .set_min_duration(min_duration)
                 .calculate_at(time)
