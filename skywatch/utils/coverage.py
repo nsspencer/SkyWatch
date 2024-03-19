@@ -4,6 +4,7 @@ from typing import List
 
 import astropy.units as u
 import numpy as np
+import portion as P
 import tqdm
 from astropy.time import Time
 
@@ -14,12 +15,26 @@ from skywatch.utils.funcs import fibonacci_latitude_longitude
 
 
 @dataclass
-class CoveragePoint:
-    latitude: u.deg
-    longitude: u.deg
+class SatelliteAccess:
+    satellite: SkyPath
     interval: AccessInterval
-    time_bound_lower: Time
-    time_bound_upper: Time
+
+
+class CoveragePoint:
+    def __init__(
+        self,
+        latitude: u.deg,
+        longitude: u.deg,
+        time_bound_lower: Time,
+        time_bound_upper: Time,
+    ) -> None:
+        self.latitude = latitude
+        self.longitude = longitude
+        self.time_bound_lower = time_bound_lower
+        self.time_bound_upper = time_bound_upper
+
+        self.interval = AccessInterval()
+        self.satellite_accesses = list()
 
     def _default_revisit_stats(self) -> u.s:
         if (
@@ -28,6 +43,41 @@ class CoveragePoint:
         ):
             return 0 * u.s
         return np.inf * u.s
+
+    @property
+    def satellite_visibility_count(self) -> int:
+        return len(
+            [i for i in self.satellite_accesses if len(i.interval._intervals) != 0]
+        )
+
+    @property
+    def max_simulatenous_visibility(self) -> int:
+        # Create a list of all start and end times
+        events = []
+        for _access in self.satellite_accesses:
+            for _interval in _access.interval._intervals:
+                events.append((_interval.lower, 1))  # Start of an interval
+                events.append((_interval.upper, -1))  # End of an interval
+
+        # Sort the events
+        events.sort()
+
+        max_simulatenous = 0
+        current_simulatenous = 0
+
+        # Sweep line algorithm
+        for _, event_type in events:
+            current_simulatenous += event_type
+            max_simulatenous = max(max_simulatenous, current_simulatenous)
+
+        return max_simulatenous
+
+    @property
+    def cumulative_access(self) -> u.s:
+        cumulative_access = 0.0 * u.s
+        for sat_access in self.satellite_accesses:
+            cumulative_access += sat_access.interval.total_duration
+        return cumulative_access
 
     @property
     def average_revisit_time(self) -> u.s:
@@ -161,7 +211,7 @@ class CoverageResult:
         self.num_points_total += 1
 
         # calculate statistics
-        coverage_duration = coverage.interval.total_duration
+        coverage_duration = coverage.cumulative_access
         self.total_coverage_duration += coverage_duration
 
         if coverage_duration > self.max_duration:
@@ -177,6 +227,17 @@ class CoverageResult:
         self.percent_coverage = self.num_points_with_coverage / self.num_points_total
 
         self.average_duration = self.total_coverage_duration / self.num_points_total
+
+    def get_max_simulatenous_visibility(self) -> int:
+        maximum = 0
+        for result in tqdm.tqdm(
+            self.coverage_points,
+            desc="Calculating maximum simulateous coverage:",
+        ):
+            num_ball = result.max_simulatenous_visibility
+            if num_ball > maximum:
+                maximum = num_ball
+        return maximum
 
     @property
     def max_revisit_time(self) -> u.s:
@@ -261,9 +322,7 @@ def calculate_coverage(
     for lat, lon in point_generator_fn(num_earth_points):
         lat, lon = lat * u.deg, lon * u.deg
         earth_points.append(SkyPath.from_geodetic(time[0], lat, lon, 0 * u.m))
-        earth_point_coverages.append(
-            CoveragePoint(lat, lon, AccessInterval(), time[0], time[-1])
-        )
+        earth_point_coverages.append(CoveragePoint(lat, lon, time[0], time[-1]))
 
     for point, coverage in tqdm.tqdm(
         zip(earth_points, earth_point_coverages),
@@ -281,5 +340,6 @@ def calculate_coverage(
                 .calculate_at(time)
             )
             coverage.interval = coverage.interval.union(_access)
+            coverage.satellite_accesses.append(SatelliteAccess(satellite, _access))
 
     return CoverageResult(*earth_point_coverages)
