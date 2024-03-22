@@ -8,33 +8,11 @@ import pymap3d
 import tqdm
 from astropy.time import Time
 
-from skypath import SkyPath
-from skypath.access.constraints import AzElRange, LineOfSight, Temporal
-from skypath.look_angles import ENUAER, NadirWithVelocityConstraint
-from skypath.tests.tests import get_ephem_data
-
-
-def fibonacci_latitude_longitude(samples=1000):
-    points = []
-    phi = math.pi * (3.0 - math.sqrt(5.0))  # golden angle in radians
-
-    for i in range(samples):
-        y = 1 - (i / float(samples - 1)) * 2  # y goes from 1 to -1
-        radius = math.sqrt(1 - y * y)  # radius at y
-
-        theta = phi * i  # golden angle increment
-
-        x = math.cos(theta) * radius
-        z = math.sin(theta) * radius
-
-        # Convert Cartesian coordinates to latitude and longitude
-        lat = math.asin(y) * 180 / math.pi
-        lon = math.atan2(z, x) * 180 / math.pi
-
-        points.append((lat, lon))
-
-    return points
-
+from skywatch.access.constraints import AzElRange, LineOfSight, Temporal
+from skywatch.coordinates import SkyPath
+from skywatch.look_angles import ENUAER, NadirWithVelocityConstraint
+from skywatch.tests.tests import get_ephem_data
+from skywatch.utils.funcs import fibonacci_latitude_longitude
 
 if __name__ == "__main__":
     scenario_start = Time("2024-02-01T00:00:00.000")

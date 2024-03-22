@@ -5,7 +5,7 @@ import unittest
 import astropy.units as u
 import numpy as np
 from astropy.time import Time, TimeDelta
-from scipy.spatial.transform.rotation import Rotation
+from scipy.spatial.transform import Rotation
 
 from skywatch.access import Access
 from skywatch.access.constraints import AzElRange, LineOfSight, Temporal
@@ -172,12 +172,150 @@ class SmokeTests(unittest.TestCase):
         gs_body_frame = LookAngles.from_body_frame(
             ground_station_pos, LVLH(ground_station_pos, "itrs")
         )
+        plot_ground_track_and_points(
+            sat_position,
+            [
+                ground_station_pos.itrs.earth_location.lat.value[0],
+                ground_station_pos.itrs.earth_location.lon.value[0],
+            ],
+        )
+
+        plot_look_angles(
+            sat_to_ground_station_look_angles_offset.azimuth,
+            sat_to_ground_station_look_angles_offset.elevation,
+            sat_to_ground_station_look_angles_offset.range,
+            sat_to_ground_station_look_angles_offset.time,
+            "Offset plot",
+        )
+
+        plot_look_angles(
+            sat_to_ground_station_look_angles.azimuth,
+            sat_to_ground_station_look_angles.elevation,
+            sat_to_ground_station_look_angles.range,
+            sat_to_ground_station_look_angles.time,
+            "LVLH plot",
+        )
 
         try:
             gs_body_to_sat = gs_body_frame(times, sat_position)
             self.assertTrue(False)  # fail
         except AttributeError:
             self.assertTrue(True)  # pass because static position has no velocity
+
+
+def plot_look_angles(
+    azimuth: np.ndarray,
+    elevation: np.ndarray,
+    range: np.ndarray,
+    times: np.ndarray,
+    title: str = "Look Angles Plot",
+) -> None:
+    """Simple plotter to show the azimuth, elevation, and range look angles over time.
+
+    Args:
+        azimuth (np.ndarray): azimuth values
+        elevation (np.ndarray): elevation values
+        range (np.ndarray): range values
+        times (np.ndarray): associated time values
+    """
+    import plotly.graph_objects as go
+
+    times = [t.to_datetime() for t in times]
+    # Create a trace for each line
+    trace1 = go.Scatter(
+        x=times, y=azimuth, mode="lines", name="Azimuth", line=dict(color="green")
+    )
+    trace2 = go.Scatter(
+        x=times, y=elevation, mode="lines", name="Elevation", line=dict(color="blue")
+    )
+    trace3 = go.Scatter(
+        x=times, y=range, mode="lines", name="Range", yaxis="y2", line=dict(color="red")
+    )
+
+    data = [trace1, trace2, trace3]
+
+    layout = go.Layout(
+        title=title,
+        yaxis=dict(title="Angle", side="left"),
+        yaxis2=dict(title="Distance", overlaying="y", side="right"),
+        xaxis=dict(
+            title="Date",
+            showgrid=True,
+            zeroline=True,
+            showline=True,
+            linecolor="rgb(204, 204, 204)",
+            linewidth=2,
+            showticklabels=True,
+            tickformat="%H:%M",
+        ),
+    )
+
+    fig = go.Figure(data=data, layout=layout)
+    fig.show()
+
+
+def plot_ground_track_and_points(satellite: SkyPath, observation_llas: list = None):
+    import plotly.graph_objects as go
+
+    # Create the line trace
+    sat_earth_pos = satellite.transform_to("itrs").earth_location
+    lats = sat_earth_pos.lat.value
+    lons = sat_earth_pos.lon.value
+    ground_track = go.Scattergeo(
+        lat=lats,
+        lon=lons,
+        mode="lines",
+        line=dict(width=2, color="blue"),
+        name="Line",
+        text=[str(t) for t in satellite.obstime],
+    )
+
+    data = [ground_track]
+
+    if observation_llas != None:
+        if isinstance(observation_llas[0], list):
+            observer_lats = [i[0] for i in observation_llas]
+            observer_lons = [i[1] for i in observation_llas]
+        else:
+            observer_lats = [observation_llas[0]]
+            observer_lons = [observation_llas[1]]
+            print(
+                f"plotting single point: [{observation_llas[0]}, {observation_llas[1]}]"
+            )
+
+        # Create the points trace
+        observers = go.Scattergeo(
+            lat=observer_lats,
+            lon=observer_lons,
+            mode="markers",
+            marker=dict(size=20, color="red"),
+            name="Points",
+        )
+
+        data.append(observers)
+
+    # Create the plot
+    fig = go.Figure(data=data)
+
+    # Update the layout
+    fig.update_layout(
+        title_text="Line and Points on the Earth",
+        showlegend=True,
+        geo=dict(
+            resolution=50,
+            showland=True,
+            showlakes=True,
+            landcolor="rgb(204, 204, 204)",
+            countrycolor="rgb(204, 204, 204)",
+            lakecolor="rgb(255, 255, 255)",
+            projection_type="equirectangular",
+            coastlinewidth=2,
+            lataxis=dict(range=[-90, 90], showgrid=True, dtick=10),
+            lonaxis=dict(range=[-180, 180], showgrid=True, dtick=20),
+        ),
+    )
+
+    fig.show()
 
 
 if __name__ == "__main__":

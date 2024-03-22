@@ -3,8 +3,11 @@ import portion as P
 from astropy.time import Time
 
 
-class AccessInterval(P.Interval):
+class TimeInterval(P.Interval):
     def __init__(self, *intervals):
+        """
+        Represents an interval of time.
+        """
         super().__init__(*intervals)
 
     @property

@@ -1,5 +1,5 @@
 from astropy.time import Time
-from scipy.spatial.transform.rotation import Rotation
+from scipy.spatial.transform import Rotation
 
 from skywatch.attitude._base_attitude import BaseAttitudeStrategy
 

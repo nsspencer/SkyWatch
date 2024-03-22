@@ -1,7 +1,7 @@
 from abc import ABC, abstractmethod
 
 from astropy.time import Time
-from scipy.spatial.transform.rotation import Rotation
+from scipy.spatial.transform import Rotation
 
 
 class BaseAttitudeStrategy(ABC):

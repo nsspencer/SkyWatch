@@ -6,7 +6,7 @@ import portion as P
 from astropy.time import Time
 
 from .constraints._base_constraint import BaseAccessConstraint
-from .interval import AccessInterval
+from .interval import TimeInterval
 
 
 class Access:
@@ -59,10 +59,10 @@ class Access:
         self.constraints.append(constraint)
         return self
 
-    def calculate_at(self, time: Time, *args, **kwargs) -> AccessInterval:
+    def calculate_at(self, time: Time, *args, **kwargs) -> TimeInterval:
         return self.__call__(time, *args, **kwargs)
 
-    def __call__(self, time: Time, *args, **kwargs) -> AccessInterval:
+    def __call__(self, time: Time, *args, **kwargs) -> TimeInterval:
         if not isinstance(time, Time):
             time = Time(time)
 
@@ -144,7 +144,7 @@ class Access:
                 final_access_times.append((exact_start_time, exact_end_time))
 
         # compute the access windows using portion's intervals
-        access = AccessInterval()
+        access = TimeInterval()
         for access_time in final_access_times:
             t_start, t_end = access_time[0], access_time[-1]
             if self._min_duration is not None:

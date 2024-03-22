@@ -8,7 +8,7 @@ import portion as P
 import tqdm
 from astropy.time import Time
 
-from skywatch.access import Access, AccessInterval
+from skywatch.access import Access, TimeInterval
 from skywatch.access.constraints import AzElRange
 from skywatch.coordinates import SkyPath
 from skywatch.utils.funcs import fibonacci_latitude_longitude
@@ -17,7 +17,7 @@ from skywatch.utils.funcs import fibonacci_latitude_longitude
 @dataclass
 class SatelliteAccess:
     satellite: SkyPath
-    interval: AccessInterval
+    interval: TimeInterval
 
 
 class CoveragePoint:
@@ -33,7 +33,7 @@ class CoveragePoint:
         self.time_bound_lower = time_bound_lower
         self.time_bound_upper = time_bound_upper
 
-        self.interval = AccessInterval()
+        self.interval = TimeInterval()
         self.satellite_accesses = list()
 
     def _default_revisit_stats(self) -> u.s:

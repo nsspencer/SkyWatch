@@ -1,7 +1,7 @@
 import astropy.units as u
 import numpy as np
 from astropy.time import Time
-from scipy.spatial.transform.rotation import Rotation
+from scipy.spatial.transform import Rotation
 
 from skywatch.attitude._base_attitude import BaseAttitudeStrategy
 from skywatch.coordinates.skypath import SkyPath

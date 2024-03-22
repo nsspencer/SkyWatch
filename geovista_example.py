@@ -27,7 +27,7 @@ if __name__ == "__main__":
     coverage_result = coverage.calculate_coverage(
         [sat_path, reversed_sat_path] * 1,
         times,
-        1000,
+        2500,
         use_precise_endpoints=False,
     )
     t1 = time.time()
