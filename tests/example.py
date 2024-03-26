@@ -9,8 +9,8 @@ import tqdm
 from astropy.time import Time
 
 from skywatch.access.constraints import AzElRange, LineOfSight, Temporal
-from skywatch.coordinates import SkyPath
 from skywatch.look_angles import ENUAER, NadirWithVelocityConstraint
+from skywatch.skypath import SkyPath
 from skywatch.tests.tests import get_ephem_data
 from skywatch.utils.funcs import fibonacci_latitude_longitude
 

@@ -3,43 +3,30 @@ import numpy as np
 from astropy.time import Time
 from scipy.spatial.transform import Rotation
 
-from skywatch.attitude._base_attitude import BaseAttitudeStrategy
-from skywatch.coordinates.skypath import SkyPath
-from skywatch.look_angles import funcs
+from skywatch.attitude.base_attitude import BaseAttitudeStrategy
 from skywatch.look_angles.aer import AzElRangeTime
-from skywatch.look_angles.strategies._base_strategy import BaseLookAngleStrategy
+from skywatch.look_angles.base_look_angle import BaseLookAngleStrategy
+from skywatch.skypath.skypath import SkyPath
 
 
-class BodyFrame(BaseLookAngleStrategy):
-    def __init__(
+class XForwardZNadir(BaseLookAngleStrategy):
+    def __init__(self, frame: str = "gcrs") -> None:
+        self.frame = frame
+
+    def calculate(
         self,
+        time: Time,
+        target: SkyPath,
         observer: SkyPath,
-        attitude_strategy: BaseAttitudeStrategy,
-        attitude_offset: Rotation = None,
-    ) -> None:
-        super().__init__()
-        self.observer = observer
-        self.attitude_strategy = attitude_strategy
-        self.attitude_offset = attitude_offset
-
-    def __call__(self, time: Time, target: SkyPath, *args, **kwargs) -> AzElRangeTime:
+        observer_attitude: BaseAttitudeStrategy,
+    ) -> AzElRangeTime:
         observer_position = (
-            self.observer.state_at(time, self.attitude_strategy.frame)
-            .cartesian.xyz.to(u.m)
-            .value
+            observer.state_at(time, self.frame).cartesian.xyz.to(u.m).value
         )
-        target_position = (
-            target.state_at(time, self.attitude_strategy.frame)
-            .cartesian.xyz.to(u.m)
-            .value
-        )
-
-        observer_attitude = self.attitude_strategy(time)
-        if self.attitude_offset is not None:
-            observer_attitude = observer_attitude * self.attitude_offset
-
-        az, el, rng = BodyFrame.get_look_angles_to(
-            observer_position.T, target_position.T, observer_attitude
+        target_position = target.state_at(time, self.frame).cartesian.xyz.to(u.m).value
+        attitude = observer_attitude.at(time)
+        az, el, rng = XForwardZNadir.get_look_angles_to(
+            observer_position.T, target_position.T, attitude
         )
 
         return AzElRangeTime(az * u.deg, el * u.deg, rng * u.m, time)
@@ -88,14 +75,55 @@ class BodyFrame(BaseLookAngleStrategy):
         observer_to_target_projected = observer_to_target - component_along_z
 
         # calculate the azimuth from the x axis
-        azimuth = funcs._counterclockwise_angle_between(
+        azimuth = XForwardZNadir._counterclockwise_angle_between(
             x_axis, observer_to_target_projected[:, :2]
         )
 
         # calculate the elevation angle
-        elevation = funcs._elevation_between(observer_to_target, component_along_z)
+        elevation = XForwardZNadir._elevation_between(
+            observer_to_target, component_along_z
+        )
 
         # calculate the range
         rng = np.linalg.norm(observer_to_target, axis=1)
 
         return azimuth, elevation, rng
+
+    @staticmethod
+    def _elevation_between(v1: np.ndarray, v2: np.ndarray) -> np.ndarray:
+        """Gets the elevation angle (in degrees) between the two vectors.
+
+        Args:
+            v1 (np.ndarray): vector 1
+            v2 (np.ndarray): vector 2
+
+        Returns:
+            np.ndarray: elevation angle in degrees
+        """
+        # Normalize the vectors to unit vectors
+        unit_vector1 = v1 / np.linalg.norm(v1, axis=1)[:, np.newaxis]
+        unit_vector2 = v2 / np.linalg.norm(v2, axis=1)[:, np.newaxis]
+
+        # Compute the dot product
+        dot_product = np.sum((unit_vector1 * unit_vector2), axis=1)
+
+        # Calculate the angle (in radians) & convert to degrees
+        elevation = np.degrees(np.arccos(dot_product))
+        return elevation
+
+    @staticmethod
+    def _counterclockwise_angle_between(v1: np.ndarray, v2: np.ndarray) -> np.ndarray:
+        """Calculates the unambiguous counterclockwise angle between two vectors.
+
+        Args:
+            v1 (np.ndarray): vectors 1
+            v2 (np.ndarray): vectors 2
+
+        Returns:
+            np.ndarray: angles in degrees (between 0 and 360)
+        """
+        angle_1 = np.arctan2(v1[:, 1], v1[:, 0]) * 180 / np.pi
+        angle_2 = np.arctan2(v2[:, 1], v2[:, 0]) * 180 / np.pi
+        angle = angle_1 - angle_2  # Swapped the order here to make counterclockwise
+        angle = np.where(angle < 0, angle + 360, angle)
+        return angle

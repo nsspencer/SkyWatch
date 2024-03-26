@@ -6,7 +6,7 @@ import numpy as np
 import pyvista as pv
 from astropy.time import Time
 
-from skywatch.coordinates import SkyPath
+from skywatch.skypath import SkyPath
 from skywatch.tests.tests import get_ephem_as_skypath
 from skywatch.utils import coverage
 

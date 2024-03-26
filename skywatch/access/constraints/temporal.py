@@ -1,7 +1,7 @@
 import numpy as np
 from astropy.time import Time
 
-from ._base_constraint import BaseAccessConstraint
+from skywatch.access.base_constraint import BaseAccessConstraint
 
 
 class Temporal(BaseAccessConstraint):

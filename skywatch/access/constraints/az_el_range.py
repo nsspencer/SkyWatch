@@ -3,9 +3,8 @@ import numpy as np
 import pymap3d
 from astropy.time import Time
 
-from skywatch.coordinates import SkyPath
-
-from ._base_constraint import BaseAccessConstraint
+from skywatch.access.base_constraint import BaseAccessConstraint
+from skywatch.skypath import SkyPath
 
 
 class AzElRange(BaseAccessConstraint):

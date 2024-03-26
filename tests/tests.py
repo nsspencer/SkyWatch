@@ -5,7 +5,7 @@ import astropy.units as u
 import numpy as np
 from astropy.time import Time
 
-from skywatch.coordinates import SkyPath
+from skywatch.skypath import SkyPath
 
 LEO_EPHEM_CSV = os.path.join(os.path.dirname(__file__), "data", "leo_sat_ephem.csv")
 

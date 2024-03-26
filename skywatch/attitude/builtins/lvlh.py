@@ -3,16 +3,29 @@ import numpy as np
 from astropy.time import Time
 from scipy.spatial.transform import Rotation
 
-from skywatch.attitude._base_attitude import BaseAttitudeStrategy
-from skywatch.coordinates.skypath import SkyPath
+from skywatch.attitude.base_attitude import BaseAttitudeStrategy
+from skywatch.skypath.skypath import SkyPath
 
 
 class LVLH(BaseAttitudeStrategy):
-    def __init__(self, observer: SkyPath, frame: str = "gcrs") -> None:
-        super().__init__(frame)
-        self.observer = observer
+    def __init__(
+        self, observer: SkyPath, frame: str = "gcrs", offset: Rotation = None
+    ) -> None:
+        """
+        Defines the LVLH orbital frame using X as the direction of forward velocity,
+        Z as the direction to the center of the reference frame, and Y as the cross
+        product completing the right-handed system.
 
-    def __call__(self, time: Time) -> Rotation:
+        Args:
+            observer (SkyPath): Observer coordinates
+            frame (str, optional): Reference frame for the LVLH calculations. Defaults to "gcrs".
+            offset (Rotation, optional): Additional rotation to apply to the LVLH frame. Defaults to None.
+        """
+        self.frame = frame
+        self.observer = observer
+        self.offset = offset
+
+    def at(self, time: Time) -> Rotation:
         state = self.observer.state_at(time, frame=self.frame)
         pos = state.cartesian.xyz.to(u.m).value
         differentials = state.cartesian.differentials.get("s", None)
@@ -23,7 +36,10 @@ class LVLH(BaseAttitudeStrategy):
         vel = differentials.d_xyz.to(u.m / u.s).value
 
         # Now you have the
-        return Rotation.from_matrix(LVLH.calculate_reference_frame(*pos, *vel))
+        rot_matrix = Rotation.from_matrix(LVLH.calculate_reference_frame(*pos, *vel))
+        if self.offset is not None:
+            rot_matrix = self.offset * rot_matrix
+        return rot_matrix
 
     @staticmethod
     def calculate_reference_frame(

@@ -6,11 +6,24 @@ import portion as P
 from astropy.time import Time
 
 from .constraints._base_constraint import BaseAccessConstraint
-from .interval import TimeInterval
+from .time_interval import TimeInterval
 
 
 class Access:
     def __init__(self, *constraints) -> None:
+        """
+        Access is used to calculate times when all provided constraints
+        are satisfied.
+
+        This class follows the builer pattern.
+
+        Raises:
+            TypeError: constraints must inherit from BaseAccessConstraint class.
+
+        Args:
+            consraints: BaseAccessConstraint objects representing the constraints
+            that must be satisfied for access to return a non-empty TimeInterval.
+        """
         self.constraints = list()
         for constraint in constraints:
             if not isinstance(constraint, BaseAccessConstraint):

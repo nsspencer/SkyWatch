@@ -10,7 +10,7 @@ from astropy.time import Time
 
 from skywatch.access import Access, TimeInterval
 from skywatch.access.constraints import AzElRange
-from skywatch.coordinates import SkyPath
+from skywatch.skypath import SkyPath
 from skywatch.utils.funcs import fibonacci_latitude_longitude
 
 
