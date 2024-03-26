@@ -1,13 +1,15 @@
 import datetime
 import time
 import unittest
+from typing import Union
 
 import astropy.units as u
 import numpy as np
+from astropy.coordinates import BaseCoordinateFrame, SkyCoord
 from astropy.time import Time, TimeDelta
 from scipy.spatial.transform import Rotation
 
-from skywatch.access import Access
+from skywatch.access import Access, TimeInterval
 from skywatch.access.constraints import AzElRange, LineOfSight, Temporal
 from skywatch.attitude import LVLH
 from skywatch.coordinates import SkyPath
@@ -201,6 +203,55 @@ class SmokeTests(unittest.TestCase):
             self.assertTrue(False)  # fail
         except AttributeError:
             self.assertTrue(True)  # pass because static position has no velocity
+
+
+# class BodyFrameBase:
+#     def __init__(self, reference_frame: str) -> None:
+#         self.reference_frame = reference_frame
+
+#     def calculate(self, coordinate: SkyPath) -> Rotation:
+#         pass
+
+
+# class LocalTangent(BodyFrameBase):
+#     pass
+
+
+# class LVLH(BodyFrameBase):
+#     pass
+
+
+# class Platform:
+#     def __init__(self, coordinates: SkyPath, body_frame: BodyFrameBase = None) -> None:
+#         self.__body_frame = body_frame
+#         self.__coordinates = coordinates
+
+#     def set_body_frame(self, body_frame: BodyFrameBase) -> "Platform":
+#         if not isinstance(body_frame, BodyFrameBase):
+#             raise TypeError("body_frame must subclass BodyFrameBase.")
+#         self.__body_frame = body_frame
+#         return self
+
+#     def set_coordinates(
+#         self,
+#         coordinates: Union[SkyPath, SkyCoord, BaseCoordinateFrame],
+#     ) -> "Platform":
+#         if isinstance(coordinates, SkyPath):
+#             self.__coordinates = coordinates
+#         else:
+#             self.__coordinates = SkyPath(coordinates)
+#         return self
+
+#     def look_angles(
+#         self,
+#         time: Time,
+#         target: Union["Platform", SkyPath],
+#         attitude_offset: Rotation = None,
+#     ) -> AzElRange:
+#         if self.__coordinates is None:
+#             raise AttributeError(
+#                 "You must define a body frame for this platform before you can use the look_angles function."
+#             )
 
 
 def plot_look_angles(
