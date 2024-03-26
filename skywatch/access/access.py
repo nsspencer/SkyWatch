@@ -5,7 +5,7 @@ import numpy as np
 import portion as P
 from astropy.time import Time
 
-from .constraints._base_constraint import BaseAccessConstraint
+from .base_constraint import BaseAccessConstraint
 from .time_interval import TimeInterval
 
 
