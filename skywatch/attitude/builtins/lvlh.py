@@ -38,7 +38,7 @@ class LVLH(BaseAttitudeStrategy):
         # Now you have the
         rot_matrix = Rotation.from_matrix(LVLH.calculate_reference_frame(*pos, *vel))
         if self.offset is not None:
-            rot_matrix = self.offset * rot_matrix
+            rot_matrix = rot_matrix * self.offset
         return rot_matrix
 
     @staticmethod

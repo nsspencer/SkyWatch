@@ -4,27 +4,33 @@ from astropy.time import Time
 from scipy.spatial.transform import Rotation
 
 from skywatch.attitude.base_attitude import BaseAttitudeStrategy
-from skywatch.look_angles.aer import AzElRangeTime
+from skywatch.look_angles.aert import AzElRangeTime
 from skywatch.look_angles.base_look_angle import BaseLookAngleStrategy
 from skywatch.skypath.skypath import SkyPath
 
 
 class XForwardZNadir(BaseLookAngleStrategy):
-    def __init__(self, frame: str = "gcrs") -> None:
+    def __init__(
+        self,
+        observer: SkyPath,
+        attitude_strategy: BaseAttitudeStrategy,
+        frame: str = "gcrs",
+    ) -> None:
+        super().__init__()
+        self.observer = observer
+        self.attitude_strategy = attitude_strategy
         self.frame = frame
 
-    def calculate(
+    def get_look_angles(
         self,
-        time: Time,
         target: SkyPath,
-        observer: SkyPath,
-        observer_attitude: BaseAttitudeStrategy,
+        time: Time,
     ) -> AzElRangeTime:
         observer_position = (
-            observer.state_at(time, self.frame).cartesian.xyz.to(u.m).value
+            self.observer.state_at(time, self.frame).cartesian.xyz.to(u.m).value
         )
         target_position = target.state_at(time, self.frame).cartesian.xyz.to(u.m).value
-        attitude = observer_attitude.at(time)
+        attitude = self.attitude_strategy.at(time)
         az, el, rng = XForwardZNadir.get_look_angles_to(
             observer_position.T, target_position.T, attitude
         )

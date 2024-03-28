@@ -4,13 +4,17 @@ from astropy.coordinates import ITRS, AltAz
 from astropy.time import Time
 
 from skywatch.attitude import BaseAttitudeStrategy
-from skywatch.look_angles.aer import AzElRangeTime
+from skywatch.look_angles.aert import AzElRangeTime
 from skywatch.look_angles.base_look_angle import BaseLookAngleStrategy
 from skywatch.skypath.skypath import SkyPath
 
 
 class LocalTangentENU(BaseLookAngleStrategy):
-    def __init__(self, use_astropy: bool = False) -> None:
+    def __init__(
+        self,
+        observer: SkyPath,
+        use_astropy: bool = False,
+    ) -> None:
         """
         Using East, North, Up in reference to Earth. Up is zenith from the plane tangent to the earths
         surface at the observers location.
@@ -20,14 +24,13 @@ class LocalTangentENU(BaseLookAngleStrategy):
             more accurate. Defaults to False.
         """
         super().__init__()
+        self.observer = observer
         self.use_astropy = use_astropy
 
-    def calculate(
+    def get_look_angles(
         self,
-        time: Time,
         target: SkyPath,
-        observer: SkyPath,
-        observer_attitude: BaseAttitudeStrategy,
+        time: Time,
     ) -> AzElRangeTime:
         if self.use_astropy:
             target_state = target.state_at(time, "itrs")
@@ -35,7 +38,7 @@ class LocalTangentENU(BaseLookAngleStrategy):
                 target_state.cartesian.without_differentials(), obstime=time
             ).transform_to(
                 AltAz(
-                    location=observer.state_at(time, "itrs").earth_location,
+                    location=self.observer.state_at(time, "itrs").earth_location,
                     obstime=time,
                 )
             )
@@ -45,7 +48,7 @@ class LocalTangentENU(BaseLookAngleStrategy):
 
         else:
             target_pos = target.state_at(time, "itrs").cartesian.xyz.to(u.m).value
-            itrs_state = observer.state_at(time, "itrs")
+            itrs_state = self.observer.state_at(time, "itrs")
             lats = itrs_state.earth_location.lat.value
             lons = itrs_state.earth_location.lon.value
             heights = itrs_state.earth_location.height.to(u.m).value
