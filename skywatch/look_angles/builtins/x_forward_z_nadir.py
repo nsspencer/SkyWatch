@@ -50,9 +50,9 @@ class XForwardZNadir(BaseLookAngleStrategy):
             270 degrees faces left of the direction of velocity.
 
         Elevation is defined as degrees of rise from the center of the earth.
-            -90 degrees faces the center of the earth (directly below the satellite)
-            0 degrees is in the direction of the velocity
-            90 degrees faces the opposite direction of the center of the earth (directly above the satellite)
+            0 degrees faces the center of the earth (directly below the satellite)
+            90 degrees is in the direction of the velocity
+            180 degrees faces the opposite direction of the center of the earth (directly above the satellite)
 
         Range is defined as straight line (euclidean) distance from the satellite to the target in kilometers.
 
@@ -131,5 +131,22 @@ class XForwardZNadir(BaseLookAngleStrategy):
         angle_1 = np.arctan2(v1[:, 1], v1[:, 0]) * 180 / np.pi
         angle_2 = np.arctan2(v2[:, 1], v2[:, 0]) * 180 / np.pi
         angle = angle_1 - angle_2  # Swapped the order here to make counterclockwise
+        angle = np.where(angle < 0, angle + 360, angle)
+        return angle
+
+    @staticmethod
+    def _clockwise_angle_between(v1: np.ndarray, v2: np.ndarray) -> np.ndarray:
+        """Calculates the unambiguous clockwise angle between two vectors.
+
+        Args:
+            v1 (np.ndarray): vectors 1
+            v2 (np.ndarray): vectors 2
+
+        Returns:
+            np.ndarray: angles in degrees (between 0 and 360)
+        """
+        angle_1 = np.arctan2(v1[:, 1], v1[:, 0]) * 180 / np.pi
+        angle_2 = np.arctan2(v2[:, 1], v2[:, 0]) * 180 / np.pi
+        angle = angle_2 - angle_1
         angle = np.where(angle < 0, angle + 360, angle)
         return angle
