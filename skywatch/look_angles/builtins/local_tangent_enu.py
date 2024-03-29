@@ -1,9 +1,11 @@
 import astropy.units as u
+import numpy as np
 import pymap3d
 from astropy.coordinates import ITRS, AltAz
 from astropy.time import Time
+from scipy.spatial.transform import Rotation
 
-from skywatch.attitude import BaseAttitudeStrategy
+from skywatch.attitude import LVLH, BaseAttitudeStrategy
 from skywatch.look_angles.aert import AzElRangeTime
 from skywatch.look_angles.base_look_angle import BaseLookAngleStrategy
 from skywatch.skypath.skypath import SkyPath
@@ -13,6 +15,7 @@ class LocalTangentENU(BaseLookAngleStrategy):
     def __init__(
         self,
         observer: SkyPath,
+        attitude_strategy: BaseAttitudeStrategy = None,
         use_astropy: bool = False,
     ) -> None:
         """
@@ -26,6 +29,7 @@ class LocalTangentENU(BaseLookAngleStrategy):
         super().__init__()
         self.observer = observer
         self.use_astropy = use_astropy
+        self.attitude_strategy = attitude_strategy
 
     def get_look_angles(
         self,
@@ -53,9 +57,26 @@ class LocalTangentENU(BaseLookAngleStrategy):
             lons = itrs_state.earth_location.lon.value
             heights = itrs_state.earth_location.height.to(u.m).value
 
-            az, el, rng = pymap3d.ecef2aer(*target_pos, lats, lons, heights)
+            enu = pymap3d.ecef2enu(*target_pos, lats, lons, heights)
+            if self.attitude_strategy is not None:
+                attitude = self.attitude_strategy.at(time)
+                enu = attitude.inv().apply(enu)
+
+            az, el, rng = pymap3d.enu2aer(*enu)
             az = az * u.deg
             el = el * u.deg
             rng = rng * u.m
 
         return AzElRangeTime(az, el, rng, time)
+
+    # @staticmethod
+    # def local_level_frame(lat: np.ndarray, lon: np.ndarray) -> Rotation:
+    #     """Define the ENU frame based on geodetic latitude and longitude."""
+    #     R_enu = np.array(
+    #         [
+    #             [-np.sin(lon), np.cos(lon), np.zeros_like(lon)],
+    #             [-np.cos(lon) * np.sin(lat), -np.sin(lon) * np.sin(lat), np.cos(lat)],
+    #             [np.cos(lon) * np.cos(lat), np.sin(lon) * np.cos(lat), np.sin(lat)],
+    #         ]
+    #     )
+    #     return Rotation.from_matrix(R_enu)

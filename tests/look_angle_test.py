@@ -5,7 +5,7 @@ import numpy as np
 from astropy.time import Time
 from scipy.spatial.transform import Rotation
 
-from skywatch.attitude import LVLH
+from skywatch.attitude import LVLH, Fixed
 from skywatch.look_angles import LocalTangentENU, XForwardZNadir
 from skywatch.skypath import SkyPath
 
@@ -33,10 +33,26 @@ class Test1(unittest.TestCase):
 
         gs1_look_angles = LocalTangentENU(gs1)
         gs2_look_angles = LocalTangentENU(gs2)
+        gs1_look_angles_offset = LocalTangentENU(
+            gs1, Fixed(Rotation.from_euler("z", 10, degrees=True))
+        )
         gs1_to_gs2 = gs1_look_angles.get_look_angles(gs2, Time("J2000"))
         gs2_to_gs1 = gs2_look_angles.get_look_angles(gs1, Time("J2000"))
-        print(gs1_to_gs2)
-        print(gs2_to_gs1)
+        gs1_to_gs2_offset = gs1_look_angles_offset.get_look_angles(gs2, Time("J2000"))
+
+        self.assertTrue(
+            np.isclose(
+                (gs1_to_gs2_offset.azimuth - gs1_to_gs2.azimuth).value, 10, atol=1e-7
+            )
+        )
+        self.assertTrue(
+            np.isclose(
+                (gs1_to_gs2_offset.elevation - gs1_to_gs2.elevation).value, 0, atol=1e-7
+            )
+        )
+        self.assertTrue(
+            np.isclose((gs1_to_gs2_offset.range - gs1_to_gs2.range).value, 0, atol=1e-7)
+        )
 
     def test_ground_station_to_satellite(self):
         sat = get_ephem_as_skypath()
