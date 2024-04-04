@@ -27,6 +27,30 @@ def fibonacci_latitude_longitude(samples=1000) -> List[tuple]:
     return points
 
 
+def lat_lon_to_xyz(latitude, longitude, radius=6371):
+    """
+    Convert latitude and longitude to Cartesian coordinates.
+
+    Parameters:
+    latitude (float): Latitude in degrees.
+    longitude (float): Longitude in degrees.
+    radius (float): Radius of the sphere. Defaults to Earth's radius (6371 km).
+
+    Returns:
+    tuple: A tuple representing the Cartesian coordinates (X, Y, Z).
+    """
+    # Convert latitude and longitude from degrees to radians
+    lat_rad = math.radians(latitude)
+    lon_rad = math.radians(longitude)
+
+    # Calculate Cartesian coordinates
+    x = radius * math.cos(lat_rad) * math.cos(lon_rad)
+    y = radius * math.cos(lat_rad) * math.sin(lon_rad)
+    z = radius * math.sin(lat_rad)
+
+    return x, y, z
+
+
 @u.quantity_input(altitude=u.km, body_radius=u.km)
 def max_elevation_angle(altitude: u.km, body_radius: u.km = 6371 * u.km):
     """Calculates the maximum elevation angle from NADIR

@@ -3,7 +3,7 @@ from setuptools import find_packages, setup
 setup(
     name="skywatch",
     version="0.1.0",
-    url="https://github.com/nsspencer/SkyPath",
+    url="https://github.com/nsspencer/SkyWatch",
     author="Nathan Spencer",
     description="Aerospace/astrodynamics analysis library providing high level interfaces for coordinate, attitude, access, and look angle calculations.",
     packages=find_packages(),

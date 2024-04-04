@@ -16,3 +16,8 @@ SkyPath is an extension of Astropy's SkyCoord class which is useful for represen
 * Plantery movement simulations
 * Aircraft tracking
 * Celestial body observations
+
+
+## Examples:
+
+See tests\test_smoke.py and tests\test_look_angles.py
