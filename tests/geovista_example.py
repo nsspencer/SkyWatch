@@ -5,9 +5,9 @@ import geovista as gv
 import numpy as np
 import pyvista as pv
 from astropy.time import Time
+from utils import get_ephem_as_skypath
 
 from skywatch.skypath import SkyPath
-from skywatch.tests.tests import get_ephem_as_skypath
 from skywatch.utils import coverage
 
 if __name__ == "__main__":
@@ -58,7 +58,6 @@ if __name__ == "__main__":
     plotter.add_mesh(m, smooth_shading=True, scalars=data)
 
     plotter.add_coastlines(zlevel=1, color="black")
-    # plotter.add_base_layer(texture=gv.natural_earth_hypsometric())
 
     t1 = time.time()
     print(f"Geovista plotting took: {t1-t0} seconds")
