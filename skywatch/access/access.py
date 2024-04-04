@@ -136,82 +136,91 @@ class Access:
             time = Time(time)
 
         # first pass check of access
-        constrined_times = [np.array([True] * time.size)]
+        original_constrained_times = [np.array([True] * time.size)]
         for constraint in self.constraints:
-            constrined_times.append(constraint(time, *args, **kwargs))
+            original_constrained_times.append(constraint(time, *args, **kwargs))
 
         # get all the windows from the first pass
-        valid_time = np.all(constrined_times, axis=0)
+        valid_time = np.all(original_constrained_times, axis=0)
         valid_ranges, access_times = Access._access_times(valid_time, time)
 
         # if no access or if not using precise timing, set the first pass as the final access
         if not self._precise_endpoints or len(self.constraints) == 0:
             final_access_times = access_times
+            return self.compute_final_access_interval(final_access_times)
 
-        else:
-            # scale the precision to reflect the it in terms of seconds
-            precision = (1 * u.s) / self._precision
+        # scale the precision to reflect the it in terms of seconds
+        precision = (1 * u.s) / self._precision
 
-            # calculate access at the precise time scale around the start and stop times of each window
-            final_access_times = []
-            for window_range, access_time in zip(valid_ranges, access_times):
-                start_index = window_range[0]
-                before_start_index = max(window_range[0] - 1, 0)
+        # calculate access at the precise time scale around the start and stop times of each window
+        final_access_times = []
+        for window_range, access_time in zip(valid_ranges, access_times):
+            start_index = window_range[0]
+            before_start_index = max(window_range[0] - 1, 0)
 
-                if start_index == before_start_index:
-                    exact_start_time = time[
-                        start_index
-                    ]  # nothing before the start time to interpolate to
-                else:
-                    # calculate number of steps between times to get desired precision
-                    t1 = time[start_index]
-                    t0 = time[before_start_index]
-                    num_steps = max(
-                        int(((t1 - t0).datetime.total_seconds()) * precision.value),
-                        2,
+            if start_index == before_start_index:
+                exact_start_time = time[
+                    start_index
+                ]  # nothing before the start time to interpolate to
+            else:
+                # calculate number of steps between times to get desired precision
+                t1 = time[start_index]
+                t0 = time[before_start_index]
+                num_steps = max(
+                    int(((t1 - t0).datetime.total_seconds()) * precision.value),
+                    2,
+                )
+                new_start_times = np.linspace(t0, t1, num_steps)
+
+                # find the exact start time for this window
+                constrained_times = [np.array([True] * len(new_start_times))]
+                for index, constraint in enumerate(self.constraints):
+                    # check if the constraint was true at the previous time step
+                    if original_constrained_times[index + 1][before_start_index]:
+                        continue
+
+                    # if not true, we need to check the precise time when this constraint turned False
+                    constrained_times.append(
+                        constraint(new_start_times, *args, **kwargs)
                     )
-                    new_start_times = np.linspace(t0, t1, num_steps)
 
-                    # find the exact start time for this window
-                    constrained_times = [np.array([True] * len(new_start_times))]
-                    for constraint in self.constraints:
-                        constrained_times.append(
-                            constraint(new_start_times, *args, **kwargs)
-                        )
-                    exact_start_time = new_start_times[
-                        np.all(constrained_times, axis=0)
-                    ][0]
+                exact_start_time = new_start_times[np.all(constrained_times, axis=0)][0]
 
-                # calculate the exact end time
-                end_index = window_range[1] - 1
-                after_end_index = min(window_range[1], time.size - 1)
+            # calculate the exact end time
+            end_index = window_range[1] - 1
+            after_end_index = min(window_range[1], time.size - 1)
 
-                if end_index == after_end_index:
-                    exact_end_time = time[
-                        end_index
-                    ]  # nothing after the end time to interpolate to
-                else:
-                    # calculate number of steps between times to get desired precision
-                    t0 = time[end_index]
-                    t1 = time[after_end_index]
-                    num_steps = max(
-                        int(((t1 - t0).datetime.total_seconds()) * precision.value),
-                        2,
-                    )
-                    new_end_times = np.linspace(t0, t1, num_steps)
+            if end_index == after_end_index:
+                exact_end_time = time[
+                    end_index
+                ]  # nothing after the end time to interpolate to
+            else:
+                # calculate number of steps between times to get desired precision
+                t0 = time[end_index]
+                t1 = time[after_end_index]
+                num_steps = max(
+                    int(((t1 - t0).datetime.total_seconds()) * precision.value),
+                    2,
+                )
+                new_end_times = np.linspace(t0, t1, num_steps)
 
-                    # find the exact end time for this window
-                    constrained_times = [np.array([True] * len(new_end_times))]
-                    for constraint in self.constraints:
-                        constrained_times.append(
-                            constraint(new_end_times, *args, **kwargs)
-                        )
-                    exact_end_time = new_end_times[np.all(constrained_times, axis=0)][
-                        -1
-                    ]
+                # find the exact end time for this window
+                constrained_times = [np.array([True] * len(new_end_times))]
+                for index, constraint in enumerate(self.constraints):
+                    # check if the constraint needs to be computed again like above
+                    if original_constrained_times[index + 1][after_end_index]:
+                        continue
 
-                final_access_times.append((exact_start_time, exact_end_time))
+                    # need to get the precise time when this constraint turned False
+                    constrained_times.append(constraint(new_end_times, *args, **kwargs))
 
+                exact_end_time = new_end_times[np.all(constrained_times, axis=0)][-1]
+
+            final_access_times.append((exact_start_time, exact_end_time))
+
+        return self.compute_final_access_interval(final_access_times)
+
+    def compute_final_access_interval(self, final_access_times: list):
         # compute the access windows using portion's intervals
         access = TimeInterval()
         for access_time in final_access_times:
@@ -227,7 +236,6 @@ class Access:
                 ).datetime.total_seconds() * u.s > self._max_duration:
                     continue
             access = access.union(P.closed(t_start, t_end))
-
         return access
 
     @staticmethod
