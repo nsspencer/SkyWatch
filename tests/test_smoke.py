@@ -5,12 +5,13 @@ import unittest
 import astropy.units as u
 import numpy as np
 from astropy.time import Time, TimeDelta
-from utils import get_ephem_as_skypath
 
 from skywatch.access import Access
 from skywatch.access.constraints import AzElRange, LineOfSight, Temporal
 from skywatch.skypath import SkyPath
 from skywatch.utils.coverage import GeoFilter, calculate_coverage
+
+from .utils import get_ephem_as_skypath
 
 
 class SmokeTests(unittest.TestCase):
@@ -135,7 +136,3 @@ class SmokeTests(unittest.TestCase):
         )
         print(f"Equatorial min revisit time: {at_equator_coverage.min_revisit_time}")
         print(f"Equatorial max revisit time: {at_equator_coverage.max_revisit_time}")
-
-
-if __name__ == "__main__":
-    unittest.main()

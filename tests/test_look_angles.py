@@ -4,11 +4,12 @@ import astropy.units as u
 import numpy as np
 from astropy.time import Time
 from scipy.spatial.transform import Rotation
-from utils import get_ephem_as_skypath
 
 from skywatch.attitude import LVLH, Fixed
 from skywatch.look_angles import DefaultLookStrategy, LocalTangentENU
 from skywatch.skypath import SkyPath
+
+from .utils import get_ephem_as_skypath
 
 
 def angle_differences(angles1, angles2):
@@ -296,7 +297,3 @@ def plot_ground_track_and_points(
     )
 
     fig.show()
-
-
-if __name__ == "__main__":
-    unittest.main()
