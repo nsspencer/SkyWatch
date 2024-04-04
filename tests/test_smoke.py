@@ -5,13 +5,10 @@ import unittest
 import astropy.units as u
 import numpy as np
 from astropy.time import Time, TimeDelta
-from scipy.spatial.transform import Rotation
 from utils import get_ephem_as_skypath
 
-from skywatch.access import Access, TimeInterval
+from skywatch.access import Access
 from skywatch.access.constraints import AzElRange, LineOfSight, Temporal
-from skywatch.attitude import LVLH
-from skywatch.look_angles import LocalTangentENU, XForwardZNadir
 from skywatch.skypath import SkyPath
 from skywatch.utils.coverage import GeoFilter, calculate_coverage
 

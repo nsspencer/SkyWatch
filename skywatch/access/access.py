@@ -38,18 +38,63 @@ class Access:
         self._max_duration = None
 
     def use_precise_endpoints(self, value: bool) -> "Access":
+        """
+        Toggle using high precision endpoints to get accurate
+        start and stop times for access intervals.
+
+        Args:
+            value (bool): True or false
+
+        Returns:
+            Access: self
+        """
         self._precise_endpoints = value
         return self
 
-    def set_precision(self, precision: u.s) -> "Access":
+    def set_precision(self, precision: u.s = 0.001 * u.s) -> "Access":
+        """
+        Represents the delta time of the high precision constraint
+        checks when *use_precise_endpoints* is True.
+
+        Args:
+            precision (u.s): delta time value in seconds.
+            Default: 0.001 seconds.
+
+        Returns:
+            Access: self
+        """
         self._precision = precision
         return self
 
     def set_min_duration(self, duration: u.s) -> "Access":
+        """
+        Sets the minimum duration of the resulting TimeInterval
+        when running access against all constraints. Successful
+        access intervals must be greater than this duration to be
+        included in the TimeInterval output.
+
+        Args:
+            duration (u.s): minimum duration in seconds.
+
+        Returns:
+            Access: self
+        """
         self._min_duration = duration
         return self
 
     def set_max_duration(self, duration: u.s) -> "Access":
+        """
+        Sets the maximum duration of the resulting TimeInterval
+        when running access against all constraints. Successful
+        access intervals must be less than this duration to be
+        included in the TimeInterval output.
+
+        Args:
+            duration (u.s): maximum duration in seconds.
+
+        Returns:
+            Access: self
+        """
         self._max_duration = duration
         return self
 
@@ -73,6 +118,17 @@ class Access:
         return self
 
     def calculate_at(self, time: Time, *args, **kwargs) -> TimeInterval:
+        """
+        Calculates access using all access constraints in this Access instance
+        at the specified time(s).
+
+        Args:
+            time (Time): Time(s) to check for calculate access intervals.
+
+        Returns:
+            TimeInterval: Resulting TimeIntervals that represent time(s) when all the
+            access constraints are successful.
+        """
         return self.__call__(time, *args, **kwargs)
 
     def __call__(self, time: Time, *args, **kwargs) -> TimeInterval:

@@ -7,7 +7,7 @@ from scipy.spatial.transform import Rotation
 from utils import get_ephem_as_skypath
 
 from skywatch.attitude import LVLH, Fixed
-from skywatch.look_angles import LocalTangentENU, XForwardZNadir
+from skywatch.look_angles import DefaultLookStrategy, LocalTangentENU
 from skywatch.skypath import SkyPath
 
 
@@ -74,12 +74,12 @@ class Test1(unittest.TestCase):
             sat.obstime, 34.5 * u.deg, -77.0 * u.deg, 0 * u.m
         )
 
-        sat_look_angles_fn = XForwardZNadir(sat, LVLH(sat, "itrs"), "itrs")
+        sat_look_angles_fn = DefaultLookStrategy(sat, LVLH(sat, "itrs"), "itrs")
         sat_look_angles = sat_look_angles_fn.get_look_angles(
             ground_station, sat.obstime
         )
 
-        gs_look_angles_fn_gcrs = XForwardZNadir(sat, LVLH(sat, "gcrs"), "gcrs")
+        gs_look_angles_fn_gcrs = DefaultLookStrategy(sat, LVLH(sat, "gcrs"), "gcrs")
         sat_look_angles_gcrs = gs_look_angles_fn_gcrs.get_look_angles(
             ground_station, sat.obstime
         )
@@ -98,7 +98,7 @@ class Test1(unittest.TestCase):
         )
         self.assertTrue(np.allclose(sat_look_angles.range, sat_look_angles_gcrs.range))
 
-        sat_look_angles_offset_fn = XForwardZNadir(
+        sat_look_angles_offset_fn = DefaultLookStrategy(
             sat, LVLH(sat, "itrs", Rotation.from_euler("z", -45, degrees=True))
         )
         sat_2_gs_offset = sat_look_angles_offset_fn.get_look_angles(
@@ -123,8 +123,8 @@ class Test1(unittest.TestCase):
         #     sat_position, times
         # )
 
-        sat_look_angles_fn = XForwardZNadir(sat_position, LVLH(sat_position))
-        sat_look_angles_fn_offset = XForwardZNadir(
+        sat_look_angles_fn = DefaultLookStrategy(sat_position, LVLH(sat_position))
+        sat_look_angles_fn_offset = DefaultLookStrategy(
             sat_position,
             LVLH(
                 sat_position,

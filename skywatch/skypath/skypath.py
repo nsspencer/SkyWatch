@@ -36,6 +36,24 @@ class SkyPath(SkyCoord, SkyPathCreationMixin):
         self._original_frame = other._original_frame
 
     def __init__(self, *args, **kwargs) -> None:
+        """
+        SkyPath has equivalent functionality to the Astropy SkyCoord class, except
+        it includes interpolation to get the coordinate state(s) at any time
+        between the minimum and maximum obstime of the coordinates that this instance
+        was created with.
+
+        This class introduces a new *state_at* method that acts as the
+        SkyCoord.transform_to(*frame*) method, but saves the state of this SkyCoord
+        in the new frame for future calls to the state_at method. Future calls return
+        the position of the SkyPath in the given frame using the saved and interpolated
+        state. This allows position and velocity to be determined at any point in time
+        for a SkyPath, even if the time was not present in the obstime array upon creation
+        of the object.
+
+        Therefore, this class is useful for simulations where you may want the coordinates
+        of an object in multiple frames at multiple points in time, but dont want to pay the
+        cost to transform the object into the new frame every time you need the coordinates.
+        """
         super().__init__(*args, **kwargs)
 
         # call copy constructor
@@ -60,16 +78,15 @@ class SkyPath(SkyCoord, SkyPathCreationMixin):
         self, time: Time, frame: str, copy: bool = True, bounds_check: bool = True
     ) -> "SkyPath":
         """
-        Interpolates an Astropy.BaseCoordinateFrame object at the given time(s) and saves the
+        Interpolates this SkyPath at the given time(s) and saves the
         interpolation spline for later use. Therefore, you only pay the computation penalty
-        for frame transforms once, and every subsequent time is multiple orders of magnitude
-        quicker.
-
-        NOTE: This has the potential to use a decent amount of memory.
+        for frame transforms once, and every subsequent call this method uses the saved frames
+        interpolators to provide quick coordinate results for the provided time(s).
 
         Args:
-            time (Time): time(s) to get the coordinate frame values for
-            frame (str): BaseCoordinateFrame name to get the results in
+            time (Time): time(s) to get the coordinate frame values for.
+            frame (str): BaseCoordinateFrame name to get the results in.
+            Example: "itrs", "gcrs", "icrs", "teme", etc...
 
         Returns:
             SkyPath: SkyPath representing an Astropy SkyCoord in the coordinate system you requested.

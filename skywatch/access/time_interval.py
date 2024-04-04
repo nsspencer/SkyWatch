@@ -12,6 +12,12 @@ class TimeInterval(P.Interval):
 
     @property
     def total_duration(self) -> u.s:
+        """
+        Duration of all sub-intervals added together.
+
+        Returns:
+            u.s: total duration in seconds
+        """
         duration = 0
         for interval in self:
             duration += (

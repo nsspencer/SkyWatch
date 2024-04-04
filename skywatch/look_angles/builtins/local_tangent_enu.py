@@ -1,11 +1,9 @@
 import astropy.units as u
-import numpy as np
 import pymap3d
 from astropy.coordinates import ITRS, AltAz
 from astropy.time import Time
-from scipy.spatial.transform import Rotation
 
-from skywatch.attitude import LVLH, BaseAttitudeStrategy
+from skywatch.attitude import BaseAttitudeStrategy
 from skywatch.look_angles.aert import AzElRangeTime
 from skywatch.look_angles.base_look_angle import BaseLookAngleStrategy
 from skywatch.skypath.skypath import SkyPath
@@ -68,15 +66,3 @@ class LocalTangentENU(BaseLookAngleStrategy):
             rng = rng * u.m
 
         return AzElRangeTime(az, el, rng, time)
-
-    # @staticmethod
-    # def local_level_frame(lat: np.ndarray, lon: np.ndarray) -> Rotation:
-    #     """Define the ENU frame based on geodetic latitude and longitude."""
-    #     R_enu = np.array(
-    #         [
-    #             [-np.sin(lon), np.cos(lon), np.zeros_like(lon)],
-    #             [-np.cos(lon) * np.sin(lat), -np.sin(lon) * np.sin(lat), np.cos(lat)],
-    #             [np.cos(lon) * np.cos(lat), np.sin(lon) * np.cos(lat), np.sin(lat)],
-    #         ]
-    #     )
-    #     return Rotation.from_matrix(R_enu)
