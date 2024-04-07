@@ -237,11 +237,11 @@ class Access:
         from the original times.
 
         Args:
-            time (Time): _description_
-            index_0 (int): _description_
-            index_1 (int): _description_
-            precision (u.Quantity): _description_
-            original_constrained_times (list): _description_
+            time (Time): original time values.
+            index_0 (int): index of value 0
+            index_1 (int): index of value 1
+            precision (u.Quantity): precision in seconds
+            original_constrained_times (list): boolean array of original contraint pass/fails
 
         Returns:
             Time: array of Time values.

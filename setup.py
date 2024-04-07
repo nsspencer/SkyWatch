@@ -8,4 +8,9 @@ setup(
     description="Aerospace/astrodynamics analysis library providing high level interfaces for coordinate, attitude, access, and look angle calculations.",
     packages=find_packages(),
     install_requires=["astropy", "numpy", "portion", "scipy", "pymap3d"],
+    classifiers=[
+        "Programming Language :: Python :: 3",
+        "License :: OSI Approved :: MIT License",
+        "Operating System :: OS Independent",
+    ],
 )
