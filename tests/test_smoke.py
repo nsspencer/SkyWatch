@@ -55,6 +55,7 @@ class SmokeTests(unittest.TestCase):
             .use_precise_endpoints(True)
             .set_precision(0.001 * u.s)
             .set_min_duration(60 * u.s)
+            .only_check_failed_constraints(True)
             .calculate_at(high_fidelity_times)
         )
         t1 = time.time()

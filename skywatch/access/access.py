@@ -36,6 +36,7 @@ class Access:
         self._precise_endpoints = False
         self._min_duration = None
         self._max_duration = None
+        self._only_check_failed_constraints = False
 
     def use_precise_endpoints(self, value: bool) -> "Access":
         """
@@ -117,6 +118,31 @@ class Access:
         self.constraints.append(constraint)
         return self
 
+    def only_check_failed_constraints(self, value: bool) -> "Access":
+        """
+        When using precise endpoints, setting this to True will use an optimization
+        to only re-check the constraints that have failed before the start and stop
+        time of the access interval(s). If a constraint did not fail at the time period
+        directly before or after the access interval, then it will not be recalculated.
+
+        NOTE: If you are using a sufficiently large enough gap in your time intervals
+        to check access during, then this has the potential to jump over a precise time
+        that would have failed for a given constraint. However, if you know that your
+        access constraints do not have a precision of less than the delta time between
+        your time values, then this will not be an issue.
+
+        NOTE: The defalt is set to False.
+
+        Args:
+            value (bool): True or False for whether or not to recheck only the failed
+            constraints.
+
+        Returns:
+            Access: self
+        """
+        self._only_check_failed_constraints = bool(value)
+        return self
+
     def calculate_at(self, time: Time, *args, **kwargs) -> TimeInterval:
         """
         Calculates access using all access constraints in this Access instance
@@ -147,7 +173,7 @@ class Access:
         # if no access or if not using precise timing, set the first pass as the final access
         if not self._precise_endpoints or len(self.constraints) == 0:
             final_access_times = access_times
-            return self.compute_final_access_interval(final_access_times)
+            return self._compute_final_access_interval(final_access_times)
 
         # scale the precision to reflect the it in terms of seconds
         precision = (1 * u.s) / self._precision
@@ -163,28 +189,15 @@ class Access:
                     start_index
                 ]  # nothing before the start time to interpolate to
             else:
-                # calculate number of steps between times to get desired precision
-                t1 = time[start_index]
-                t0 = time[before_start_index]
-                num_steps = max(
-                    int(((t1 - t0).datetime.total_seconds()) * precision.value),
-                    2,
-                )
-                new_start_times = np.linspace(t0, t1, num_steps)
-
-                # find the exact start time for this window
-                constrained_times = [np.array([True] * len(new_start_times))]
-                for index, constraint in enumerate(self.constraints):
-                    # check if the constraint was true at the previous time step
-                    if original_constrained_times[index + 1][before_start_index]:
-                        continue
-
-                    # if not true, we need to check the precise time when this constraint turned False
-                    constrained_times.append(
-                        constraint(new_start_times, *args, **kwargs)
-                    )
-
-                exact_start_time = new_start_times[np.all(constrained_times, axis=0)][0]
+                exact_start_time = self.__get_exact_times(
+                    time,
+                    start_index,
+                    before_start_index,
+                    precision,
+                    original_constrained_times,
+                    *args,
+                    **kwargs
+                )[0]
 
             # calculate the exact end time
             end_index = window_range[1] - 1
@@ -195,32 +208,69 @@ class Access:
                     end_index
                 ]  # nothing after the end time to interpolate to
             else:
-                # calculate number of steps between times to get desired precision
-                t0 = time[end_index]
-                t1 = time[after_end_index]
-                num_steps = max(
-                    int(((t1 - t0).datetime.total_seconds()) * precision.value),
-                    2,
-                )
-                new_end_times = np.linspace(t0, t1, num_steps)
-
-                # find the exact end time for this window
-                constrained_times = [np.array([True] * len(new_end_times))]
-                for index, constraint in enumerate(self.constraints):
-                    # check if the constraint needs to be computed again like above
-                    if original_constrained_times[index + 1][after_end_index]:
-                        continue
-
-                    # need to get the precise time when this constraint turned False
-                    constrained_times.append(constraint(new_end_times, *args, **kwargs))
-
-                exact_end_time = new_end_times[np.all(constrained_times, axis=0)][-1]
+                exact_end_time = self.__get_exact_times(
+                    time,
+                    end_index,
+                    after_end_index,
+                    precision,
+                    original_constrained_times,
+                    *args,
+                    **kwargs
+                )[-1]
 
             final_access_times.append((exact_start_time, exact_end_time))
 
-        return self.compute_final_access_interval(final_access_times)
+        return self._compute_final_access_interval(final_access_times)
 
-    def compute_final_access_interval(self, final_access_times: list):
+    def __get_exact_times(
+        self,
+        time: Time,
+        index_0: int,
+        index_1: int,
+        precision: u.Quantity,
+        original_constrained_times: list,
+        *args,
+        **kwargs
+    ) -> Time:
+        """
+        Helper to calculate the exact times between one index and another
+        from the original times.
+
+        Args:
+            time (Time): _description_
+            index_0 (int): _description_
+            index_1 (int): _description_
+            precision (u.Quantity): _description_
+            original_constrained_times (list): _description_
+
+        Returns:
+            Time: array of Time values.
+        """
+        # calculate number of steps between times to get desired precision
+        t0 = time[index_0]
+        t1 = time[index_1]
+        num_steps = max(
+            int(((t1 - t0).datetime.total_seconds()) * precision.value),
+            2,
+        )
+        new_times = np.linspace(t0, t1, num_steps)
+
+        # find the exact end time for this window
+        constrained_times = [np.array([True] * len(new_times))]
+        for index, constraint in enumerate(self.constraints):
+            # check if the constraint needs to be computed again like above
+            if (
+                self._only_check_failed_constraints
+                and original_constrained_times[index + 1][index_1]
+            ):
+                continue
+
+            # need to get the precise time when this constraint turned False
+            constrained_times.append(constraint(new_times, *args, **kwargs))
+
+        return new_times[np.all(constrained_times, axis=0)]
+
+    def _compute_final_access_interval(self, final_access_times: list):
         # compute the access windows using portion's intervals
         access = TimeInterval()
         for access_time in final_access_times:
