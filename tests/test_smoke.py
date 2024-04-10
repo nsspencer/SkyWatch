@@ -185,7 +185,9 @@ class SmokeTests(unittest.TestCase):
 
         sat_position = get_ephem_as_skypath()
 
-        worldwide_coverage_result = calculate_coverage([sat_position], times, 300)
+        worldwide_coverage_result = calculate_coverage(
+            [sat_position], times, 300, use_precise_endpoints=False
+        )
         print(
             f"Worldwide min revisit time: {worldwide_coverage_result.min_revisit_time}"
         )

@@ -49,7 +49,7 @@ class Access:
         Returns:
             Access: self
         """
-        self._precise_endpoints = value
+        self._precise_endpoints = bool(value)
         return self
 
     def set_precision(self, precision: u.s = 0.001 * u.s) -> "Access":
@@ -162,7 +162,7 @@ class Access:
             time = Time(time)
 
         # first pass check of access
-        original_constrained_times = [np.array([True] * time.size)]
+        original_constrained_times = [np.ones(time.size, dtype=bool)]
         for constraint in self.constraints:
             original_constrained_times.append(constraint(time, *args, **kwargs))
 
@@ -172,15 +172,14 @@ class Access:
 
         # if no access or if not using precise timing, set the first pass as the final access
         if not self._precise_endpoints or len(self.constraints) == 0:
-            final_access_times = access_times
-            return self._compute_final_access_interval(final_access_times)
+            return self._compute_final_access_interval(access_times)
 
         # scale the precision to reflect the it in terms of seconds
         precision = (1 * u.s) / self._precision
 
         # calculate access at the precise time scale around the start and stop times of each window
         final_access_times = []
-        for window_range, access_time in zip(valid_ranges, access_times):
+        for window_range in valid_ranges:
             start_index = window_range[0]
             before_start_index = max(window_range[0] - 1, 0)
 

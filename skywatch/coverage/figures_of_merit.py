@@ -1,0 +1,1 @@
+from skywatch.coverage.coverage_definition import CoverageDefinition

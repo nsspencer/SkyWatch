@@ -26,6 +26,7 @@ class AzElRange(BaseAccessConstraint):
         max_el: u.deg = 90 * u.deg,
         min_range: u.m = 0 * u.m,
         max_range: u.m = np.inf * u.m,
+        bounds_check: bool = False,
     ) -> None:
         """
         Determine access using ENU azimuth, elevation, and range values from an earth based position.
@@ -37,6 +38,8 @@ class AzElRange(BaseAccessConstraint):
             max_el (u.deg, optional): maximum allowable elevation angle to target. Defaults to 90*u.deg.
             min_range (u.m, optional): minimum allowable range angle to target. Defaults to 0*u.m.
             max_range (u.m, optional): maximum allowable range to target. Defaults to np.inf*u.m.
+            bounds_check (bool, optional): check the time bounds of the observer and target to ensure
+            new state times are within the times that the objects were created with.
         """
         super().__init__()
         self.observer = observer
@@ -47,6 +50,7 @@ class AzElRange(BaseAccessConstraint):
         self.max_el = max_el
         self.min_range = min_range
         self.max_range = max_range
+        self.bounds_check = bounds_check
 
     def __call__(self, time: Time, *args, **kwargs) -> np.ndarray:
         """Constraints the times when the azimuth, elevation, and range values are satisfied from the observer to the target.
@@ -61,11 +65,11 @@ class AzElRange(BaseAccessConstraint):
         # NOTE: Using pymap3d is tremendously faster than having astropy calculate the AltAz frame from the observer to the target,
         # however there are cases for distant objects that this loses accuracy.
         az, el, rng = pymap3d.ecef2aer(
-            *self.target.state_at(time, "itrs", bounds_check=True)
+            *self.target.state_at(time, "itrs", bounds_check=self.bounds_check)
             .cartesian.xyz.to(u.m)
             .value,
             *pymap3d.ecef2geodetic(
-                *self.observer.state_at(time, "itrs", bounds_check=True)
+                *self.observer.state_at(time, "itrs", bounds_check=self.bounds_check)
                 .cartesian.xyz.to(u.m)
                 .value
             )
