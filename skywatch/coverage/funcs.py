@@ -51,6 +51,8 @@ def lat_lon_to_xyz(latitude: float, longitude: float, radius: float = 6371):
 
 
 def points_in_polygon(polygon: Polygon, N: int):
+    raise NotImplementedError("Needs testing")
+
     # Define the golden ratio
     golden_ratio = (np.sqrt(5) - 1) / 2
 
