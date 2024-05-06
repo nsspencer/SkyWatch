@@ -3,7 +3,7 @@ from astropy.time import Time
 import concurrent.futures
 
 class Coverage:
-    def __init__(self) -> None:
+    def __init__(self, coverage_definitions) -> None:
         self.coverage_definitions = list()
     
     def add_coverage_definition(self, coverage_definition: CoverageDefinition) -> 'Coverage':

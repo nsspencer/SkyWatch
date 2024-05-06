@@ -11,6 +11,7 @@ class CoverageResult:
     def __init__(self) -> None:
         pass
     
-    def add_coverage_point(self, point: SkyPath, )
+    def add_coverage_point(self, point: SkyPath, access_interval: TimeInterval) -> None:
+        pass
     
     
