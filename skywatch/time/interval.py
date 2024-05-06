@@ -3,7 +3,7 @@ import portion as P
 from astropy.time import Time
 
 
-class TimeInterval(P.Interval):
+class Interval(P.Interval):
     def __init__(self, *intervals):
         """
         Represents an interval of time.

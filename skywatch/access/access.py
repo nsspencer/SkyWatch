@@ -6,7 +6,7 @@ import portion as P
 from astropy.time import Time
 
 from .base_constraint import BaseAccessConstraint
-from .time_interval import TimeInterval
+from .time_interval import Interval
 
 
 class Access:
@@ -22,7 +22,7 @@ class Access:
 
         Args:
             consraints: BaseAccessConstraint objects representing the constraints
-            that must be satisfied for access to return a non-empty TimeInterval.
+            that must be satisfied for access to return a non-empty Interval.
         """
         self.constraints = list()
         for constraint in constraints:
@@ -69,10 +69,10 @@ class Access:
 
     def set_min_duration(self, duration: u.s) -> "Access":
         """
-        Sets the minimum duration of the resulting TimeInterval
+        Sets the minimum duration of the resulting Interval
         when running access against all constraints. Successful
         access intervals must be greater than this duration to be
-        included in the TimeInterval output.
+        included in the Interval output.
 
         Args:
             duration (u.s): minimum duration in seconds.
@@ -85,10 +85,10 @@ class Access:
 
     def set_max_duration(self, duration: u.s) -> "Access":
         """
-        Sets the maximum duration of the resulting TimeInterval
+        Sets the maximum duration of the resulting Interval
         when running access against all constraints. Successful
         access intervals must be less than this duration to be
-        included in the TimeInterval output.
+        included in the Interval output.
 
         Args:
             duration (u.s): maximum duration in seconds.
@@ -143,7 +143,7 @@ class Access:
         self._only_check_failed_constraints = bool(value)
         return self
 
-    def calculate_at(self, time: Time, *args, **kwargs) -> TimeInterval:
+    def calculate_at(self, time: Time, *args, **kwargs) -> Interval:
         """
         Calculates access using all access constraints in this Access instance
         at the specified time(s).
@@ -152,12 +152,12 @@ class Access:
             time (Time): Time(s) to check for calculate access intervals.
 
         Returns:
-            TimeInterval: Resulting TimeIntervals that represent time(s) when all the
+            Interval: Resulting TimeIntervals that represent time(s) when all the
             access constraints are successful.
         """
         return self.__call__(time, *args, **kwargs)
 
-    def __call__(self, time: Time, *args, **kwargs) -> TimeInterval:
+    def __call__(self, time: Time, *args, **kwargs) -> Interval:
         if not isinstance(time, Time):
             time = Time(time)
 
@@ -272,7 +272,7 @@ class Access:
 
     def _compute_final_access_interval(self, final_access_times: list):
         # compute the access windows using portion's intervals
-        access = TimeInterval()
+        access = Interval()
         for access_time in final_access_times:
             t_start, t_end = access_time[0], access_time[-1]
             if self._min_duration is not None:
