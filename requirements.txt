@@ -3,3 +3,4 @@ astropy
 pymap3d
 portion
 scipy
+tqdm
