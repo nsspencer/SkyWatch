@@ -5,8 +5,9 @@ import numpy as np
 import portion as P
 from astropy.time import Time
 
+from skywatch.time.interval import Interval
+
 from .base_constraint import BaseAccessConstraint
-from .time_interval import Interval
 
 
 class Access:
