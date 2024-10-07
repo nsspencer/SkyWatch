@@ -31,9 +31,7 @@ class LineOfSight(BaseAccessConstraint):
             use_frame (str, optional): coordinate frame name to calculate access in. Defaults to 'itrs'.
         """
         super().__init__()
-        assert (
-            observer is not target
-        ), "Observer cannot be the same object as the target"
+        assert observer is not target, "Observer cannot be the same object as the target"
         self.observer = observer
         self.target = target
         self.when_obstructed = when_obstructed
@@ -46,11 +44,9 @@ class LineOfSight(BaseAccessConstraint):
         elif isinstance(obstructor, BaseCoordinateFrame):
             self.obstructor = SkyPath(obstructor)
         else:
-            raise TypeError(
-                "Body must be a SkyPath, CoordinateInterpolator, or BaseCoordinateFrame."
-            )
+            raise TypeError("Body must be a SkyPath, CoordinateInterpolator, or BaseCoordinateFrame.")
 
-    def __call__(self, time: Time, *args, **kwargs) -> np.ndarray:
+    def __call__(self, time: Time) -> np.ndarray:
         """
         Returns the subset of times when the earth does not obstruct the two Kinematics.
 
@@ -64,19 +60,11 @@ class LineOfSight(BaseAccessConstraint):
         Returns:
             Time: boolean array of times when this SkyPath has line of sight access to the target.
         """
-        pos1 = self.observer.state_at(
-            time, self.use_frame, bounds_check=True
-        ).cartesian.xyz
-        pos2 = self.target.state_at(
-            time, self.use_frame, bounds_check=True
-        ).cartesian.xyz
-        obstructor_pos = self.obstructor.state_at(
-            time, self.use_frame, bounds_check=True
-        ).cartesian.xyz
+        pos1 = self.observer.state_at(time, self.use_frame, bounds_check=False).cartesian.xyz
+        pos2 = self.target.state_at(time, self.use_frame, bounds_check=False).cartesian.xyz
+        obstructor_pos = self.obstructor.state_at(time, self.use_frame, bounds_check=False).cartesian.xyz
 
-        los_times = self._line_of_sight_body(
-            pos1.T, pos2.T, obstructor_pos.T, self.sma, self.smi
-        )
+        los_times = self._line_of_sight_body(pos1.T, pos2.T, obstructor_pos.T, self.sma, self.smi)
         if self.when_obstructed:
             return los_times
         return ~los_times
@@ -113,9 +101,7 @@ class LineOfSight(BaseAccessConstraint):
         los_vectors = pos2 - pos1
 
         # Calculate the unit vectors of the line of sight
-        los_unit_vectors = (
-            los_vectors / np.linalg.norm(los_vectors, axis=1)[:, np.newaxis]
-        )
+        los_unit_vectors = los_vectors / np.linalg.norm(los_vectors, axis=1)[:, np.newaxis]
 
         # Calculate the vectors from the observer to the body's center
         observer_to_body = pos_body - pos1

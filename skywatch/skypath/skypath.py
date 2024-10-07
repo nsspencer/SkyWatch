@@ -74,9 +74,21 @@ class SkyPath(SkyCoord, SkyPathCreationMixin):
             self._original_times = self.obstime
             self._original_frame = self
 
-    def state_at(
-        self, time: Time, frame: str, copy: bool = True, bounds_check: bool = True
-    ) -> "SkyPath":
+    @property
+    def min_time(self) -> Time:
+        if self._min_original_time is not None:
+            return self._min_original_time
+        self._min_original_time = np.min(self._original_times)
+        return self._min_original_time
+
+    @property
+    def max_time(self) -> Time:
+        if self._max_original_time is not None:
+            return self._max_original_time
+        self._max_original_time = np.max(self._original_times)
+        return self._max_original_time
+
+    def state_at(self, time: Time, frame: str, copy: bool = True, bounds_check: bool = True) -> "SkyPath":
         """
         Interpolates this SkyPath at the given time(s) and saves the
         interpolation spline for later use. Therefore, you only pay the computation penalty
@@ -92,21 +104,10 @@ class SkyPath(SkyCoord, SkyPathCreationMixin):
             SkyPath: SkyPath representing an Astropy SkyCoord in the coordinate system you requested.
         """
         if not self._interpolation_allowed:
-            return SkyPath(
-                SkyCoord(
-                    self.frame.cartesian, obstime=time, frame=self.frame.name
-                ).transform_to(frame)
-            )
+            return SkyPath(SkyCoord(self.frame.cartesian, obstime=time, frame=self.frame.name).transform_to(frame))
 
         if bounds_check:
-            if self._min_original_time is None:
-                self._min_original_time = np.min(self._original_times)
-            if self._max_original_time is None:
-                self._max_original_time = np.max(self._original_times)
-            if (
-                np.min(time) < self._min_original_time
-                or np.max(time) > self._max_original_time
-            ):
+            if np.min(time) < self.min_time or np.max(time) > self.max_time:
                 raise ValueError(
                     f"Cannot interpolate times that are outside the bounds of the original coordinate frame.\nTime bounds are: [{self._min_original_time}, {self._max_original_time}]"
                 )
@@ -119,10 +120,11 @@ class SkyPath(SkyCoord, SkyPathCreationMixin):
                 break
 
         # if the frame exists, use it to interpolate the position and velocity to the given time
+        unix_time = time.unix
         if saved_frame is not None:
-            _position = saved_frame.position_spline(time.unix) * u.m
+            _position = saved_frame.position_spline(unix_time) * u.m
             if saved_frame.velocity_spline is not None:
-                _velocity = saved_frame.velocity_spline(time.unix) * (u.m / u.s)
+                _velocity = saved_frame.velocity_spline(unix_time) * (u.m / u.s)
             else:
                 _velocity = [None, None, None]
 
@@ -151,9 +153,7 @@ class SkyPath(SkyCoord, SkyPathCreationMixin):
         except AttributeError as err:
             # handle errors when coming from non terrestrial coordinate system
             if err.name == "to_geodetic":
-                converted_frame = self.state_at(
-                    self._original_times, "itrs", copy=False
-                ).transform_to(frame)
+                converted_frame = self.state_at(self._original_times, "itrs", copy=False).transform_to(frame)
             else:
                 raise err
 
@@ -171,14 +171,12 @@ class SkyPath(SkyCoord, SkyPathCreationMixin):
                 self._original_times.unix, position, velocity, axis=1, extrapolate=False
             )
             velocity_spline = position_spline.derivative()
-            interpolated_position = position_spline(time.unix) * u.m
-            interpolated_velocity = velocity_spline(time.unix) * (u.m / u.s)
+            interpolated_position = position_spline(unix_time) * u.m
+            interpolated_velocity = velocity_spline(unix_time) * (u.m / u.s)
         else:
-            position_spline = CubicSpline(
-                self._original_times.unix, position, axis=1, extrapolate=False
-            )
+            position_spline = CubicSpline(self._original_times.unix, position, axis=1, extrapolate=False)
             velocity_spline = None
-            interpolated_position = position_spline(time.unix) * u.m
+            interpolated_position = position_spline(unix_time) * u.m
             interpolated_velocity = [None, None, None]
 
         # save the frame and its splines

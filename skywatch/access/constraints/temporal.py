@@ -5,9 +5,7 @@ from skywatch.access.base_constraint import BaseAccessConstraint
 
 
 class Temporal(BaseAccessConstraint):
-    def __init__(
-        self, min_time: Time = None, max_time: Time = None, inner: bool = True
-    ) -> None:
+    def __init__(self, min_time: Time = None, max_time: Time = None, inner: bool = True) -> None:
         """
         Only allows times in the time array that are within self.from_time and self.to_time (if self.inner is True)
         to pass the constraint.
@@ -27,11 +25,9 @@ class Temporal(BaseAccessConstraint):
         self.inner = inner
 
         if self.min_time is None and self.max_time is None:
-            raise ValueError(
-                "Min time and Max time cannot both be None. You must set one, or both."
-            )
+            raise ValueError("Min time and Max time cannot both be None. You must set one, or both.")
 
-    def __call__(self, time: Time, *args, **kwargs) -> np.ndarray:
+    def __call__(self, time: Time) -> np.ndarray:
         """
         Compute times that pass this constraint.
 

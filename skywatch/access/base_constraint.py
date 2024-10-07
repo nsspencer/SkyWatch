@@ -13,7 +13,7 @@ class BaseAccessConstraint(ABC):
         super().__init__()
 
     @abstractmethod
-    def __call__(self, time: Time, *args, **kwargs) -> np.ndarray:
+    def __call__(self, time: Time) -> np.ndarray:
         """
         Method called by the Access algorithm which passes in a
 

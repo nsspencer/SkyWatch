@@ -5,6 +5,7 @@ from astropy.time import Time
 
 from skywatch.access.base_constraint import BaseAccessConstraint
 from skywatch.skypath import SkyPath
+from pymap3d import ecef2geodetic, ecef2aer
 
 
 class AzElRange(BaseAccessConstraint):
@@ -48,7 +49,7 @@ class AzElRange(BaseAccessConstraint):
         self.min_range = min_range
         self.max_range = max_range
 
-    def __call__(self, time: Time, *args, **kwargs) -> np.ndarray:
+    def __call__(self, time: Time) -> np.ndarray:
         """Constraints the times when the azimuth, elevation, and range values are satisfied from the observer to the target.
 
         Args:
@@ -60,17 +61,11 @@ class AzElRange(BaseAccessConstraint):
 
         # NOTE: Using pymap3d is tremendously faster than having astropy calculate the AltAz frame from the observer to the target,
         # however there are cases for distant objects that this loses accuracy.
-        az, el, rng = pymap3d.ecef2aer(
-            *self.target.state_at(time, "itrs", bounds_check=True)
-            .cartesian.xyz.to(u.m)
-            .value,
-            *pymap3d.ecef2geodetic(
-                *self.observer.state_at(time, "itrs", bounds_check=True)
-                .cartesian.xyz.to(u.m)
-                .value
-            )
+        az, el, rng = ecef2aer(
+            *self.target.state_at(time, "itrs", bounds_check=False).cartesian.xyz.to_value(u.m),
+            *ecef2geodetic(*self.observer.state_at(time, "itrs", bounds_check=False).cartesian.xyz.to_value(u.m))
         )
-        return (
+        results = (
             (az >= self.min_az.value)
             & (az <= self.max_az.value)
             & (el >= self.min_el.value)
@@ -78,3 +73,4 @@ class AzElRange(BaseAccessConstraint):
             & (rng >= self.min_range.value)
             & (rng <= self.max_range.value)
         )
+        return results
