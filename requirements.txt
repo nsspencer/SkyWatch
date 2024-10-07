@@ -4,3 +4,6 @@ pymap3d
 portion
 scipy
 tqdm
+pyvista
+basemap
+matplotlib

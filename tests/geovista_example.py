@@ -1,9 +1,6 @@
 import time
 
-import astropy.units as u
-import geovista as gv
 import numpy as np
-import pyvista as pv
 from astropy.time import Time
 from utils import get_ephem_as_skypath
 
@@ -27,11 +24,14 @@ if __name__ == "__main__":
     coverage_result = coverage.calculate_coverage(
         [sat_path, reversed_sat_path] * 1,
         times,
-        2500,
+        250,
         use_precise_endpoints=False,
     )
     t1 = time.time()
     print(f"Coverage calculation took: {t1-t0} seconds")
+
+    # coverage_result.plot()
+    coverage_result.plot_3d()
 
     t0 = time.time()
     max_num_ball = coverage_result.get_max_simulatenous_visibility()
@@ -39,28 +39,24 @@ if __name__ == "__main__":
     t1 = time.time()
     print(f"Max num ball took: {t1-t0} seconds")
 
-    t0 = time.time()
-    data, points = [], []
-    for point in coverage_result:
-        xyz = (
-            SkyPath.from_geodetic(times[0], point.latitude, point.longitude, 0 * u.m)
-            .cartesian.xyz.to(u.km)
-            .value
-        )
-        xyz[2] += 0.01
-        points.append(xyz / (np.linalg.norm(xyz)))
-        data.append(point.cumulative_access.value)
+    # t0 = time.time()
+    # data, points = [], []
+    # for point in coverage_result:
+    #     xyz = SkyPath.from_geodetic(times[0], point.latitude, point.longitude, 0 * u.m).cartesian.xyz.to(u.km).value
+    #     xyz[2] += 0.01
+    #     points.append(xyz / (np.linalg.norm(xyz)))
+    #     data.append(point.cumulative_access.value)
 
-    # Create a GeoPlotter object
-    plotter = gv.GeoPlotter()
-    m = pv.PolyData(points).delaunay_3d()
-    m["data"] = data
-    plotter.add_mesh(m, smooth_shading=True, scalars=data)
+    # # Create a GeoPlotter object
+    # plotter = gv.GeoPlotter()
+    # m = pv.PolyData(points).delaunay_3d()
+    # m["data"] = data
+    # plotter.add_mesh(m, smooth_shading=True, scalars=data)
 
-    plotter.add_coastlines(zlevel=1, color="black")
+    # plotter.add_coastlines(zlevel=1, color="black")
 
-    t1 = time.time()
-    print(f"Geovista plotting took: {t1-t0} seconds")
+    # t1 = time.time()
+    # print(f"Geovista plotting took: {t1-t0} seconds")
 
-    # Display the plot
-    plotter.show()
+    # # Display the plot
+    # plotter.show()

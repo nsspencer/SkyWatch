@@ -11,7 +11,7 @@ from skywatch.access import Access
 from skywatch.access.constraints import AzElRange, LineOfSight, Temporal
 from skywatch.skypath import SkyPath
 from skywatch.utils.coverage import GeoFilter, calculate_coverage
-from skywatch.utils.funcs import fibonacci_latitude_longitude, lat_lon_to_xyz
+from skywatch.utils.funcs import lat_lon_to_xyz, FibonacciPointGenerator
 
 from .utils import get_ephem_as_skypath
 
@@ -32,9 +32,7 @@ class SmokeTests(unittest.TestCase):
         sun_pos = SkyPath.from_body(low_fidelity_times, "sun")
         moon_pos = SkyPath.from_body(low_fidelity_times, "moon")
 
-        ground_station_pos = SkyPath.from_geodetic(
-            low_fidelity_times[0], 34.5 * u.deg, -77.0 * u.deg, 0 * u.m
-        )
+        ground_station_pos = SkyPath.from_geodetic(low_fidelity_times[0], 34.5 * u.deg, -77.0 * u.deg, 0 * u.m)
 
         sat_position = get_ephem_as_skypath()
 
@@ -42,9 +40,7 @@ class SmokeTests(unittest.TestCase):
         access_times = (
             Access(
                 LineOfSight(ground_station_pos, sat_position, earth_pos),
-                AzElRange(
-                    ground_station_pos, sun_pos, min_el=0 * u.deg, max_el=5 * u.deg
-                ),
+                AzElRange(ground_station_pos, sun_pos, min_el=0 * u.deg, max_el=5 * u.deg),
                 LineOfSight(sat_position, sun_pos, earth_pos),
                 Temporal(
                     min_time=Time("2024-02-01T22:15:00"),
@@ -76,19 +72,14 @@ class SmokeTests(unittest.TestCase):
         times = np.linspace(t_start, t_end, num_steps)
 
         # define a sample of position around the surface of the moon
-        moon_position_offsets = [
-            lat_lon_to_xyz(i[0], i[1], radius=1079.6)
-            for i in fibonacci_latitude_longitude(100)
-        ]
+        moon_position_offsets = [lat_lon_to_xyz(i[0], i[1], radius=1079.6) for i in FibonacciPointGenerator(100)()]
 
         # get the moons position and add the offsets to the position to define
         # coordinates on the lunar surface
         moon_pos = SkyPath.from_body(times, "moon")
         moon_surface_samples = [
             SkyPath(
-                CartesianRepresentation(
-                    *(moon_pos.cartesian.xyz.T + (moon_pos_offset * u.m)).T
-                ),
+                CartesianRepresentation(*(moon_pos.cartesian.xyz.T + (moon_pos_offset * u.m)).T),
                 frame="gcrs",
                 obstime=times,
             )
@@ -126,20 +117,14 @@ class SmokeTests(unittest.TestCase):
         t1 = time.time()
 
         print(f"Lunar eclipse access calculation took: {t1-t0} seconds")
-        print(
-            f"There will be ~{lunar_access_interval.total_duration} seconds of lunar eclipse in 2024."
-        )
+        print(f"There will be ~{lunar_access_interval.total_duration} seconds of lunar eclipse in 2024.")
         print(lunar_access_interval)
         self.assertTrue(len(lunar_access_interval) >= 1)
 
         # define a sample of points around the earth
         earth_positions = [
-            SkyPath(
-                EarthLocation(i[1] * u.deg, i[0] * u.deg, height=0 * u.m).get_itrs(
-                    t_start
-                )
-            )
-            for i in fibonacci_latitude_longitude(200)
+            SkyPath(EarthLocation(i[1] * u.deg, i[0] * u.deg, height=0 * u.m).get_itrs(t_start))
+            for i in FibonacciPointGenerator(200)()
         ]
 
         # calculate line of sight access from points around the earth to the sun
@@ -172,9 +157,7 @@ class SmokeTests(unittest.TestCase):
         t1 = time.time()
 
         print(f"Solar eclipse access calculation took: {t1-t0} seconds")
-        print(
-            f"There will be ~{solar_access_interval.total_duration} seconds of solar eclipse in 2024."
-        )
+        print(f"There will be ~{solar_access_interval.total_duration} seconds of solar eclipse in 2024.")
         print(solar_access_interval)
         self.assertTrue(len(solar_access_interval) >= 2)
 
@@ -185,13 +168,9 @@ class SmokeTests(unittest.TestCase):
 
         sat_position = get_ephem_as_skypath()
 
-        worldwide_coverage_result = calculate_coverage([sat_position], times, 300)
-        print(
-            f"Worldwide min revisit time: {worldwide_coverage_result.min_revisit_time}"
-        )
-        print(
-            f"Worldwide max revisit time: {worldwide_coverage_result.max_revisit_time}"
-        )
+        worldwide_coverage_result = calculate_coverage([sat_position], times)
+        print(f"Worldwide min revisit time: {worldwide_coverage_result.min_revisit_time}")
+        print(f"Worldwide max revisit time: {worldwide_coverage_result.max_revisit_time}")
 
         at_equator_coverage = worldwide_coverage_result.filter(
             GeoFilter(min_latitude=-1 * u.deg, max_latitude=1 * u.deg)

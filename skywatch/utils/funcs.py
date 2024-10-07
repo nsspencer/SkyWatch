@@ -1,30 +1,38 @@
 import math
-from typing import List
+from typing import List, Tuple
 
 import astropy.units as u
 import numpy as np
 
 
-def fibonacci_latitude_longitude(samples=1000) -> List[tuple]:
-    points = []
-    phi = math.pi * (3.0 - math.sqrt(5.0))  # golden angle in radians
+class PointGenerator:
+    def __call__(self) -> List[Tuple[float, float]]: ...
 
-    for i in range(samples):
-        y = 1 - (i / float(samples - 1)) * 2  # y goes from 1 to -1
-        radius = math.sqrt(1 - y * y)  # radius at y
 
-        theta = phi * i  # golden angle increment
+class FibonacciPointGenerator(PointGenerator):
+    def __init__(self, samples: int = 1000):
+        self.samples = samples
 
-        x = math.cos(theta) * radius
-        z = math.sin(theta) * radius
+    def __call__(self) -> List[tuple]:
+        points = []
+        phi = math.pi * (3.0 - math.sqrt(5.0))  # golden angle in radians
 
-        # Convert Cartesian coordinates to latitude and longitude
-        lat = math.asin(y) * 180 / math.pi
-        lon = math.atan2(z, x) * 180 / math.pi
+        for i in range(self.samples):
+            y = 1 - (i / float(self.samples - 1)) * 2  # y goes from 1 to -1
+            radius = math.sqrt(1 - y * y)  # radius at y
 
-        points.append((lat, lon))
+            theta = phi * i  # golden angle increment
 
-    return points
+            x = math.cos(theta) * radius
+            z = math.sin(theta) * radius
+
+            # Convert Cartesian coordinates to latitude and longitude
+            lat = math.asin(y) * 180 / math.pi
+            lon = math.atan2(z, x) * 180 / math.pi
+
+            points.append((lat, lon))
+
+        return points
 
 
 def lat_lon_to_xyz(latitude, longitude, radius=6371):
